@@ -23,6 +23,14 @@ message Task {
   google.protobuf.Timestamp created_at = 16;
   google.protobuf.Timestamp updated_at = 17;
   string created_by = 18;
+
+  // Proto evolution rules:
+  // - Never renumber existing fields.
+  // - Never reuse removed field tags or names.
+  reserved 19;
+  reserved 20;
+  reserved "metadata";
+  reserved "execution_metadata";
 }
 
 enum TaskStatus {
@@ -48,6 +56,9 @@ message CreateTaskRequest {
   string prompt = 2;
   string parent_task_id = 3;
   string created_by = 4;
+
+  // Reserved for backward-compatible evolution.
+  reserved 5;
 }
 
 message CreateTaskResponse {
@@ -57,18 +68,30 @@ message CreateTaskResponse {
 message ListTasksRequest {
   int32 limit = 1;
   int32 offset = 2;
+
+  // Reserved for backward-compatible evolution.
+  reserved 3;
 }
 
 message ListTasksResponse {
   repeated Task tasks = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
 }
 
 message GetTaskRequest {
   string id = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
 }
 
 message GetTaskResponse {
   Task task = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
 }
 
 service TaskService {
