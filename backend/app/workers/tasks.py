@@ -3,6 +3,7 @@ from __future__ import annotations
 from uuid import UUID
 
 from app.db.session import SessionLocal
+from app.models.task import TaskStatus
 from app.schemas.task import TaskGetInput
 from app.services.nim_client import NIMCallError, NIMClient
 from app.services.task_service import TaskService
@@ -21,12 +22,23 @@ def execute_llm_task(self, *, task_id: str) -> dict[str, str]:
 
     with SessionLocal() as db:
         service = TaskService(db)
+        task = service.get_task(TaskGetInput(id=parsed_task_id))
+        if task.status == TaskStatus.cancelled:
+            return {
+                "task_id": task_id,
+                "status": "cancelled",
+            }
         service.mark_task_running(
             task_id=parsed_task_id,
             celery_task_id=celery_task_id,
             worker_id=worker_id,
         )
         task = service.get_task(TaskGetInput(id=parsed_task_id))
+        if task.status == TaskStatus.cancelled:
+            return {
+                "task_id": task_id,
+                "status": "cancelled",
+            }
         prompt = task.prompt
 
     client = NIMClient()
@@ -34,6 +46,12 @@ def execute_llm_task(self, *, task_id: str) -> dict[str, str]:
         result = client.generate(prompt=prompt)
         with SessionLocal() as db:
             service = TaskService(db)
+            refreshed_task = service.get_task(TaskGetInput(id=parsed_task_id))
+            if refreshed_task.status == TaskStatus.cancelled:
+                return {
+                    "task_id": task_id,
+                    "status": "cancelled",
+                }
             service.mark_task_completed(
                 task_id=parsed_task_id,
                 celery_task_id=celery_task_id,
@@ -54,6 +72,12 @@ def execute_llm_task(self, *, task_id: str) -> dict[str, str]:
             error_type = "NIMCallError"
         with SessionLocal() as db:
             service = TaskService(db)
+            refreshed_task = service.get_task(TaskGetInput(id=parsed_task_id))
+            if refreshed_task.status == TaskStatus.cancelled:
+                return {
+                    "task_id": task_id,
+                    "status": "cancelled",
+                }
             service.mark_task_failed(
                 task_id=parsed_task_id,
                 celery_task_id=celery_task_id,

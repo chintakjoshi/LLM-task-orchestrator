@@ -101,5 +101,15 @@ services:
     ports:
       - "5173:5173"
 
+  grpc_stubgen:
+    build:
+      context: .
+      dockerfile: tools/stubgen/Dockerfile
+    container_name: grpc_stubgen
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    command: ["sh", "scripts/generate_grpc_stubs_in_container.sh"]
+
 volumes:
   postgres_data:

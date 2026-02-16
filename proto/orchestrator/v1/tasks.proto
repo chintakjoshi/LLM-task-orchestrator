@@ -1,8 +1,22 @@
-syntax = "proto3";
+﻿syntax = "proto3";
 
 package orchestrator.v1;
 
 import "google/protobuf/timestamp.proto";
+
+message ExecutionMetadata {
+  int32 attempt_number = 1;
+  string model_name = 2;
+  int32 prompt_tokens = 3;
+  int32 completion_tokens = 4;
+  int32 total_tokens = 5;
+  int64 duration_ms = 6;
+  string worker_id = 7;
+  string celery_task_id = 8;
+  google.protobuf.Timestamp queued_at = 9;
+  google.protobuf.Timestamp started_at = 10;
+  google.protobuf.Timestamp completed_at = 11;
+}
 
 message Task {
   string id = 1;
@@ -23,6 +37,7 @@ message Task {
   google.protobuf.Timestamp created_at = 16;
   google.protobuf.Timestamp updated_at = 17;
   string created_by = 18;
+  ExecutionMetadata latest_execution_metrics = 21;
 
   // Proto evolution rules:
   // - Never renumber existing fields.
@@ -94,8 +109,131 @@ message GetTaskResponse {
   reserved 2;
 }
 
+message CancelTaskRequest {
+  string id = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message CancelTaskResponse {
+  Task task = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message RetryTaskRequest {
+  string id = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message RetryTaskResponse {
+  Task task = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message BatchCreateTaskItem {
+  string name = 1;
+  string prompt = 2;
+  string parent_task_id = 3;
+  string created_by = 4;
+
+  // Reserved for backward-compatible evolution.
+  reserved 5;
+}
+
+message BatchCreateTasksRequest {
+  repeated BatchCreateTaskItem tasks = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message BatchCreateTasksResponse {
+  repeated Task tasks = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message TaskTemplate {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string prompt_template = 4;
+
+  // Reserved for backward-compatible evolution.
+  reserved 5;
+}
+
+message ListTaskTemplatesRequest {
+  // Reserved for backward-compatible evolution.
+  reserved 1;
+}
+
+message ListTaskTemplatesResponse {
+  repeated TaskTemplate templates = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message CreateTaskFromTemplateRequest {
+  string template_id = 1;
+  string input_text = 2;
+  string name = 3;
+  string parent_task_id = 4;
+  string created_by = 5;
+
+  // Reserved for backward-compatible evolution.
+  reserved 6;
+}
+
+message CreateTaskFromTemplateResponse {
+  Task task = 1;
+
+  // Reserved for backward-compatible evolution.
+  reserved 2;
+}
+
+message TaskLineageNode {
+  Task task = 1;
+  int32 depth = 2;
+
+  // Reserved for backward-compatible evolution.
+  reserved 3;
+}
+
+message GetTaskLineageRequest {
+  string id = 1;
+  int32 max_depth = 2;
+
+  // Reserved for backward-compatible evolution.
+  reserved 3;
+}
+
+message GetTaskLineageResponse {
+  Task root_task = 1;
+  repeated TaskLineageNode ancestors = 2;
+  repeated TaskLineageNode descendants = 3;
+
+  // Reserved for backward-compatible evolution.
+  reserved 4;
+}
+
 service TaskService {
   rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+  rpc CancelTask(CancelTaskRequest) returns (CancelTaskResponse);
+  rpc RetryTask(RetryTaskRequest) returns (RetryTaskResponse);
+  rpc BatchCreateTasks(BatchCreateTasksRequest) returns (BatchCreateTasksResponse);
+  rpc ListTaskTemplates(ListTaskTemplatesRequest) returns (ListTaskTemplatesResponse);
+  rpc CreateTaskFromTemplate(CreateTaskFromTemplateRequest) returns (CreateTaskFromTemplateResponse);
+  rpc GetTaskLineage(GetTaskLineageRequest) returns (GetTaskLineageResponse);
 }

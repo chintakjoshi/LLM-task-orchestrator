@@ -4,7 +4,8 @@ from datetime import UTC, datetime
 
 from google.protobuf.timestamp_pb2 import Timestamp
 
-from app.models.task import ExecutionPriority, Task, TaskStatus
+from app.models.task import ExecutionPriority, Task, TaskExecution, TaskStatus
+from app.services.task_templates import TaskTemplateDefinition
 from orchestrator.v1 import tasks_pb2
 
 _STATUS_TO_PROTO = {
@@ -33,6 +34,42 @@ def _to_timestamp(value: datetime | None) -> Timestamp | None:
         value = value.replace(tzinfo=UTC)
     ts.FromDatetime(value.astimezone(UTC))
     return ts
+
+
+def _latest_execution(task: Task) -> TaskExecution | None:
+    if not task.executions:
+        return None
+    return max(task.executions, key=lambda execution: (execution.attempt_number, execution.created_at))
+
+
+def _to_proto_execution_metadata(execution: TaskExecution | None) -> tasks_pb2.ExecutionMetadata | None:
+    if execution is None:
+        return None
+
+    message = tasks_pb2.ExecutionMetadata(
+        attempt_number=execution.attempt_number,
+        model_name=execution.model_name or "",
+        prompt_tokens=execution.prompt_tokens or 0,
+        completion_tokens=execution.completion_tokens or 0,
+        total_tokens=execution.total_tokens or 0,
+        duration_ms=execution.duration_ms or 0,
+        worker_id=execution.worker_id or "",
+        celery_task_id=execution.celery_task_id or "",
+    )
+
+    queued_at = _to_timestamp(execution.queued_at)
+    if queued_at is not None:
+        message.queued_at.CopyFrom(queued_at)
+
+    started_at = _to_timestamp(execution.started_at)
+    if started_at is not None:
+        message.started_at.CopyFrom(started_at)
+
+    completed_at = _to_timestamp(execution.completed_at)
+    if completed_at is not None:
+        message.completed_at.CopyFrom(completed_at)
+
+    return message
 
 
 def to_proto_task(task: Task) -> tasks_pb2.Task:
@@ -78,8 +115,35 @@ def to_proto_task(task: Task) -> tasks_pb2.Task:
     if updated_at is not None:
         message.updated_at.CopyFrom(updated_at)
 
+    latest_execution = _to_proto_execution_metadata(_latest_execution(task))
+    if latest_execution is not None:
+        message.latest_execution_metrics.CopyFrom(latest_execution)
+
     return message
 
 
 def to_proto_task_list(tasks: list[Task]) -> list[tasks_pb2.Task]:
     return [to_proto_task(task) for task in tasks]
+
+
+def to_proto_task_templates(
+    templates: tuple[TaskTemplateDefinition, ...],
+) -> list[tasks_pb2.TaskTemplate]:
+    return [
+        tasks_pb2.TaskTemplate(
+            id=template.template_id,
+            name=template.name,
+            description=template.description,
+            prompt_template=template.prompt_template,
+        )
+        for template in templates
+    ]
+
+
+def to_proto_lineage_nodes(
+    lineage_nodes: list[tuple[Task, int]],
+) -> list[tasks_pb2.TaskLineageNode]:
+    return [
+        tasks_pb2.TaskLineageNode(task=to_proto_task(task), depth=depth)
+        for task, depth in lineage_nodes
+    ]

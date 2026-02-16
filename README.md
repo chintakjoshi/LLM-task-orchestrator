@@ -59,6 +59,27 @@ Frontend env (`frontend/.env`):
    - `VITE_USER_ID`
    - `VITE_GRPC_TIMEOUT_SECONDS`
 
+## gRPC Stub Generation
+
+Preferred (containerized, deterministic across hosts):
+
+```powershell
+docker compose run --rm grpc_stubgen
+```
+
+Equivalent helper:
+
+```powershell
+./scripts/generate_grpc_stubs.ps1
+```
+
+Local fallback (host tooling dependent):
+
+```powershell
+cd frontend
+npm run generate:grpc:local
+```
+
 ## Run With Docker
 
 Start:
@@ -90,13 +111,34 @@ Create and execute a task:
 Monitor:
 - Task list auto-polls while active tasks exist.
 - Task detail auto-polls while selected task is active.
-- Detail view shows prompt/output/error/timestamps.
+- Detail view shows prompt/output/error/timestamps and latest execution metadata (latency/model/token usage).
+- Task list includes search and status filtering for faster triage.
 
 Chain:
 1. Open a completed task with output.
 2. Click `Use as New Task`.
 3. Review prefilled prompt and submit follow-up task.
-4. Parent-child relationship appears in list/detail views.
+4. Parent-child relationship appears in list/detail views with lineage visualization.
+
+Retry failed task:
+1. Open a failed task.
+2. Click `Retry Task` if retries remain.
+3. Task is re-queued and execution history records a new attempt.
+
+Cancel active task:
+1. Open a pending/queued/running task.
+2. Click `Cancel Task`.
+3. Task transitions to `cancelled` and worker completion is ignored if cancellation wins the race.
+
+Create from templates:
+1. Open the `Task Templates` section.
+2. Select a template and provide input text.
+3. Submit to generate a queued task from the rendered prompt.
+
+Batch create:
+1. Open the `Batch Create` section.
+2. Enter one task per line (`Name | Prompt` or prompt-only lines).
+3. Submit to enqueue up to 50 tasks in one request.
 
 ## API Surface
 
@@ -104,6 +146,12 @@ External task APIs are gRPC-only:
 - `TaskService.CreateTask`
 - `TaskService.ListTasks`
 - `TaskService.GetTask`
+- `TaskService.CancelTask`
+- `TaskService.RetryTask`
+- `TaskService.BatchCreateTasks`
+- `TaskService.ListTaskTemplates`
+- `TaskService.CreateTaskFromTemplate`
+- `TaskService.GetTaskLineage`
 
 REST endpoints are operational:
 - `GET /health`
@@ -165,9 +213,8 @@ Build and static checks run:
 ## Future Improvements
 
 - Add authn/authz and tenant-aware access controls.
-- Add retry/cancel task RPCs.
-- Add dedicated lineage endpoints and graph visualization.
+- Add richer graph-style lineage UI (DAG visualization with edge metadata).
 - Add observability stack (OpenTelemetry traces, metrics dashboards).
 - Add automated end-to-end integration tests with ephemeral infra.
-- Add richer filtering/search/sorting in task list.
+- Add server-side filtering/search/sorting and pagination RPCs for large datasets.
 - Add idempotency keys for create flow.
