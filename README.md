@@ -35,3 +35,20 @@ Frontend TypeScript stubs:
 ```powershell
 docker run --rm -v "${PWD}:/workspace" -w /workspace/frontend node:22-alpine sh -lc "npm ci && npm run generate:grpc"
 ```
+
+## gRPC-web Contract Notes (Phase 5)
+
+- External task APIs are gRPC-only (`CreateTask`, `ListTasks`, `GetTask`).
+- REST endpoints are operational-only health checks (`/health`, `/health/db`).
+- Frontend sends request metadata on every RPC:
+  - `x-request-id`
+  - `x-user-id`
+  - `grpc-timeout`
+- Backend propagates `x-request-id` back in gRPC trailers and includes it in error messages.
+- Frontend maps gRPC status codes to user-facing errors with stable messaging.
+
+### Frontend gRPC environment variables
+
+- `VITE_GRPC_WEB_URL` (default: `http://localhost:8080`)
+- `VITE_USER_ID` (default: `local-dev-user` in `.env.example`)
+- `VITE_GRPC_TIMEOUT_SECONDS` (default: `10` in `.env.example`)

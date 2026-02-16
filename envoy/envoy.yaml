@@ -29,8 +29,8 @@ static_resources:
                         allow_origin_string_match:
                           - prefix: "http://localhost:5173"
                         allow_methods: "GET,POST,OPTIONS"
-                        allow_headers: "keep-alive,user-agent,cache-control,content-type,x-grpc-web,x-user-agent,grpc-timeout,authorization"
-                        expose_headers: "grpc-status,grpc-message,grpc-status-details-bin"
+                        allow_headers: "keep-alive,user-agent,cache-control,content-type,x-grpc-web,x-user-agent,grpc-timeout,authorization,x-request-id,x-user-id"
+                        expose_headers: "grpc-status,grpc-message,grpc-status-details-bin,x-request-id"
                         max_age: "86400"
                 http_filters:
                   - name: envoy.filters.http.grpc_web
