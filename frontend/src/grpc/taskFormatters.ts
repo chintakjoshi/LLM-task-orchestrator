@@ -16,12 +16,22 @@ const PRIORITY_LABELS: Record<number, string> = {
   [ExecutionPriority.EXECUTION_PRIORITY_CRITICAL]: "critical",
 };
 
+const ACTIVE_STATUSES = new Set<TaskStatus>([
+  TaskStatus.TASK_STATUS_PENDING,
+  TaskStatus.TASK_STATUS_QUEUED,
+  TaskStatus.TASK_STATUS_RUNNING,
+]);
+
 export function taskStatusLabel(status: TaskStatus): string {
   return STATUS_LABELS[status] ?? "unknown";
 }
 
 export function taskPriorityLabel(priority: ExecutionPriority): string {
   return PRIORITY_LABELS[priority] ?? "unknown";
+}
+
+export function isTaskActive(status: TaskStatus): boolean {
+  return ACTIVE_STATUSES.has(status);
 }
 
 export function formatTimestamp(value: Date | string | undefined): string {

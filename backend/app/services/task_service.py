@@ -4,16 +4,14 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.task import TaskStatus
 from app.repositories.task_repository import TaskRepository
 from app.schemas.task import (
     TaskCreateInput,
     TaskGetInput,
     TaskListInput,
-    TaskTriggerTestInput,
 )
 from app.workers.celery_app import celery_app
-from app.workers.task_names import EXECUTE_LLM_TASK_NAME, EXECUTE_TEST_TASK_NAME
+from app.workers.task_names import EXECUTE_LLM_TASK_NAME
 
 
 class TaskNotFoundError(Exception):
@@ -21,10 +19,6 @@ class TaskNotFoundError(Exception):
 
 
 class ParentTaskNotFoundError(Exception):
-    pass
-
-
-class TaskAlreadyInProgressError(Exception):
     pass
 
 
@@ -49,12 +43,7 @@ class TaskService:
             parent_task_id=parent_task_id,
             created_by=data.created_by,
         )
-        queued_task, _ = self._enqueue_existing_task(
-            task_id=task.id,
-            task_name=EXECUTE_LLM_TASK_NAME,
-            payload={"task_id": str(task.id)},
-        )
-        return queued_task
+        return self._enqueue_llm_task(task_id=task.id)
 
     def list_tasks(self, data: TaskListInput):
         return self.repository.list(limit=data.limit, offset=data.offset)
@@ -64,17 +53,6 @@ class TaskService:
         if task is None:
             raise TaskNotFoundError("Task not found")
         return task
-
-    def trigger_test_task(self, data: TaskTriggerTestInput):
-        queued_task, celery_task_id = self._enqueue_existing_task(
-            task_id=data.id,
-            task_name=EXECUTE_TEST_TASK_NAME,
-            payload={
-                "task_id": str(data.id),
-                "sleep_seconds": data.sleep_seconds,
-            },
-        )
-        return queued_task, celery_task_id
 
     def mark_task_running(
         self,
@@ -131,26 +109,19 @@ class TaskService:
         if task is None:
             raise TaskNotFoundError("Task not found")
 
-    def _enqueue_existing_task(
+    def _enqueue_llm_task(
         self,
         *,
         task_id: UUID,
-        task_name: str,
-        payload: dict[str, str | int],
     ):
         task = self.repository.get_by_id(task_id)
         if task is None:
             raise TaskNotFoundError("Task not found")
 
-        if task.status in {TaskStatus.queued, TaskStatus.running}:
-            raise TaskAlreadyInProgressError(
-                "Task is already queued or running and cannot be triggered again",
-            )
-
         try:
             async_result = celery_app.send_task(
-                task_name,
-                kwargs=payload,
+                EXECUTE_LLM_TASK_NAME,
+                kwargs={"task_id": str(task.id)},
             )
         except Exception as exc:  # pragma: no cover - network/system dependent
             raise TaskEnqueueError("Failed to submit task to Celery") from exc
