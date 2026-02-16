@@ -36,6 +36,8 @@ class TaskServiceGrpcHandler(tasks_pb2_grpc.TaskServiceServicer):
                 return tasks_pb2.CreateTaskResponse(task=to_proto_task(task))
             except ParentTaskNotFoundError as exc:
                 context.abort(grpc.StatusCode.NOT_FOUND, str(exc))
+            except TaskEnqueueError as exc:
+                context.abort(grpc.StatusCode.UNAVAILABLE, str(exc))
             except SQLAlchemyError:
                 db.rollback()
                 context.abort(grpc.StatusCode.INTERNAL, "Failed to create task")

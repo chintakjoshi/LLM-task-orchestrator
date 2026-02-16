@@ -45,7 +45,7 @@ class TaskRepository:
         stmt = select(Task).where(Task.id == task_id)
         return self.db.scalar(stmt)
 
-    def enqueue_test_execution(self, *, task_id: uuid.UUID, celery_task_id: str) -> Task | None:
+    def enqueue_execution(self, *, task_id: uuid.UUID, celery_task_id: str) -> Task | None:
         task = self.get_by_id(task_id)
         if task is None:
             return None
@@ -114,6 +114,10 @@ class TaskRepository:
         task_id: uuid.UUID,
         celery_task_id: str,
         output: str,
+        model_name: str | None = None,
+        prompt_tokens: int | None = None,
+        completion_tokens: int | None = None,
+        total_tokens: int | None = None,
     ) -> Task | None:
         task = self.get_by_id(task_id)
         if task is None:
@@ -131,6 +135,10 @@ class TaskRepository:
             execution.output = output
             execution.error_message = None
             execution.error_type = None
+            execution.model_name = model_name
+            execution.prompt_tokens = prompt_tokens
+            execution.completion_tokens = completion_tokens
+            execution.total_tokens = total_tokens
             execution.completed_at = now
 
         self.db.commit()
