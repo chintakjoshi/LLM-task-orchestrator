@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { createTask, listTasks } from "../grpc/tasksApi";
 import { formatTimestamp, isTaskActive, taskStatusLabel } from "../grpc/taskFormatters";
@@ -16,6 +16,13 @@ const INITIAL_FORM: TaskFormValues = {
   prompt: "",
 };
 const POLL_INTERVAL_MS = 2500;
+const SHORT_ID_LENGTH = 8;
+
+interface ChainPrefill {
+  parentTaskId: string;
+  parentTaskName: string;
+  parentOutput: string;
+}
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) {
@@ -31,13 +38,72 @@ function truncateText(value: string, maxLength = 160): string {
   return `${value.slice(0, maxLength)}...`;
 }
 
+function abbreviateId(value: string): string {
+  if (value.length <= SHORT_ID_LENGTH) {
+    return value;
+  }
+  return `${value.slice(0, SHORT_ID_LENGTH)}...`;
+}
+
+function parseChainPrefill(state: unknown, searchParams: URLSearchParams): ChainPrefill {
+  const record = (state && typeof state === "object" ? state : null) as Record<string, unknown> | null;
+  const stateParentId =
+    typeof record?.parentTaskId === "string" ? record.parentTaskId.trim() : "";
+  const queryParentId = searchParams.get("parentTaskId")?.trim() ?? "";
+  const parentTaskId = stateParentId || queryParentId;
+
+  const parentTaskName =
+    typeof record?.parentTaskName === "string" ? record.parentTaskName.trim() : "";
+  const parentOutput = typeof record?.parentOutput === "string" ? record.parentOutput : "";
+
+  return {
+    parentTaskId,
+    parentTaskName,
+    parentOutput,
+  };
+}
+
 export default function TasksPage() {
-  const [formValues, setFormValues] = useState<TaskFormValues>(INITIAL_FORM);
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPrefillRef = useRef<ChainPrefill | null>(null);
+  if (initialPrefillRef.current === null) {
+    initialPrefillRef.current = parseChainPrefill(location.state, searchParams);
+  }
+  const initialPrefill = initialPrefillRef.current;
+
+  const [formValues, setFormValues] = useState<TaskFormValues>(() => ({
+    name: initialPrefill.parentTaskName ? `${initialPrefill.parentTaskName} follow-up` : "",
+    prompt: initialPrefill.parentOutput,
+  }));
+  const [parentTaskId, setParentTaskId] = useState<string>(initialPrefill.parentTaskId);
+  const [parentTaskName, setParentTaskName] = useState<string>(initialPrefill.parentTaskName);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const hasActiveTasks = tasks.some((task) => isTaskActive(task.status));
+  const childCountByParentId = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const task of tasks) {
+      const parentId = task.parentTaskId.trim();
+      if (!parentId) {
+        continue;
+      }
+      map.set(parentId, (map.get(parentId) ?? 0) + 1);
+    }
+    return map;
+  }, [tasks]);
+
+  const clearChainContext = useCallback(() => {
+    setParentTaskId("");
+    setParentTaskName("");
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete("parentTaskId");
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
 
   const loadTasks = useCallback(async (showLoading: boolean) => {
     if (showLoading) {
@@ -47,6 +113,12 @@ export default function TasksPage() {
     try {
       const nextTasks = await listTasks();
       setTasks(nextTasks);
+      if (parentTaskId && !parentTaskName) {
+        const parentTask = nextTasks.find((task) => task.id === parentTaskId);
+        if (parentTask) {
+          setParentTaskName(parentTask.name);
+        }
+      }
       setError("");
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "Failed to load tasks."));
@@ -55,7 +127,7 @@ export default function TasksPage() {
         setLoading(false);
       }
     }
-  }, []);
+  }, [parentTaskId, parentTaskName]);
 
   useEffect(() => {
     void loadTasks(true);
@@ -84,8 +156,10 @@ export default function TasksPage() {
       await createTask({
         name: formValues.name.trim(),
         prompt: formValues.prompt.trim(),
+        parentTaskId: parentTaskId || undefined,
       });
       setFormValues(INITIAL_FORM);
+      clearChainContext();
       await loadTasks(true);
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "Failed to create task."));
@@ -102,6 +176,25 @@ export default function TasksPage() {
           Create a task and it will run asynchronously via Celery + NVIDIA NIM.
         </p>
       </div>
+
+      {parentTaskId ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          <p>
+            Chaining from{" "}
+            <Link to={`/tasks/${parentTaskId}`} className="font-semibold underline">
+              {parentTaskName || `task ${abbreviateId(parentTaskId)}`}
+            </Link>
+            . The new task will keep this parent link.
+          </p>
+          <button
+            type="button"
+            onClick={clearChainContext}
+            className="rounded-md border border-blue-200 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition hover:border-blue-300 hover:text-blue-900"
+          >
+            Remove Parent Link
+          </button>
+        </div>
+      ) : null}
 
       <form
         className="space-y-3 rounded-xl border border-line bg-slate-50/70 p-4"
@@ -123,6 +216,7 @@ export default function TasksPage() {
             className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-500 transition focus:ring-2"
             required
             maxLength={255}
+            placeholder={parentTaskId ? "Name this follow-up task" : ""}
           />
         </div>
 
@@ -142,6 +236,7 @@ export default function TasksPage() {
             className="min-h-28 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-500 transition focus:ring-2"
             required
             rows={4}
+            placeholder={parentTaskId ? "Parent output is prefilled. Refine as needed." : ""}
           />
         </div>
 
@@ -206,6 +301,19 @@ export default function TasksPage() {
                 Created: {formatTimestamp(task.createdAt)} | Started:{" "}
                 {formatTimestamp(task.startedAt)} | Completed: {formatTimestamp(task.completedAt)}
               </p>
+              <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                {task.parentTaskId ? (
+                  <p>
+                    Parent:{" "}
+                    <Link to={`/tasks/${task.parentTaskId}`} className="font-medium text-blue-700 hover:underline">
+                      {abbreviateId(task.parentTaskId)}
+                    </Link>
+                  </p>
+                ) : null}
+                {(childCountByParentId.get(task.id) ?? 0) > 0 ? (
+                  <p>Children: {childCountByParentId.get(task.id)}</p>
+                ) : null}
+              </div>
               {task.output ? (
                 <p className="mt-1 text-xs text-slate-600">Output: {truncateText(task.output)}</p>
               ) : null}
