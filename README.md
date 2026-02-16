@@ -177,7 +177,6 @@ Why Celery:
 
 Why PostgreSQL:
 - reliable relational persistence for task lifecycle + execution history
-- supports advanced schema objects needed by `SAMPLESQL.md` (views/functions/triggers)
 - good fit for audit/history-oriented workloads
 
 Why gRPC-web from day one:
@@ -204,13 +203,6 @@ Frontend behavior:
 - separate create and list/detail error banners
 - retry actions for list/detail fetch failures
 - non-blocking lineage warning in task detail when lineage enrichment fails
-
-## Validation Performed
-
-Build and static checks run:
-- `python -m compileall backend/app`
-- `frontend/node_modules/.bin/tsc --noEmit`
-- `npm run build` (frontend production build)
 
 ## Future Improvements
 
