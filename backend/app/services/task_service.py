@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from uuid import UUID
+from uuid import uuid4
 
 from sqlalchemy.orm import Session
 
@@ -43,7 +44,8 @@ class TaskService:
             parent_task_id=parent_task_id,
             created_by=data.created_by,
         )
-        return self._enqueue_llm_task(task_id=task.id)
+        queued_task = self._enqueue_llm_task(task_id=task.id)
+        return queued_task
 
     def list_tasks(self, data: TaskListInput):
         return self.repository.list(limit=data.limit, offset=data.offset)
@@ -118,18 +120,27 @@ class TaskService:
         if task is None:
             raise TaskNotFoundError("Task not found")
 
-        try:
-            async_result = celery_app.send_task(
-                EXECUTE_LLM_TASK_NAME,
-                kwargs={"task_id": str(task.id)},
-            )
-        except Exception as exc:  # pragma: no cover - network/system dependent
-            raise TaskEnqueueError("Failed to submit task to Celery") from exc
-
+        celery_task_id = str(uuid4())
         queued_task = self.repository.enqueue_execution(
             task_id=task.id,
-            celery_task_id=async_result.id,
+            celery_task_id=celery_task_id,
         )
         if queued_task is None:
             raise TaskNotFoundError("Task not found")
-        return queued_task, async_result.id
+
+        try:
+            celery_app.send_task(
+                EXECUTE_LLM_TASK_NAME,
+                kwargs={"task_id": str(task.id)},
+                task_id=celery_task_id,
+            )
+        except Exception as exc:  # pragma: no cover - network/system dependent
+            self.repository.mark_failed(
+                task_id=task.id,
+                celery_task_id=celery_task_id,
+                error_message="Failed to submit task to Celery",
+                error_type="TaskEnqueueError",
+            )
+            raise TaskEnqueueError("Failed to submit task to Celery") from exc
+
+        return queued_task
