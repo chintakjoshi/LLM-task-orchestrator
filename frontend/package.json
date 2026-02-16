@@ -8,7 +8,8 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
-    "generate:grpc": "node ./scripts/generate-grpc.cjs"
+    "generate:grpc": "docker compose -f ../docker-compose.yml run --rm grpc_stubgen",
+    "generate:grpc:local": "node ./scripts/generate-grpc.cjs"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.9.0",

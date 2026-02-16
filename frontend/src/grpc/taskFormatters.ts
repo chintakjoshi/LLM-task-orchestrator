@@ -65,3 +65,22 @@ export function formatTimestamp(value: Date | string | undefined): string {
 
   return date.toLocaleString();
 }
+
+export function formatDurationMs(durationMs: string | number | undefined): string {
+  if (durationMs === undefined) {
+    return "-";
+  }
+
+  const value =
+    typeof durationMs === "string"
+      ? Number.parseInt(durationMs, 10)
+      : durationMs;
+
+  if (!Number.isFinite(value) || value <= 0) {
+    return "-";
+  }
+  if (value < 1_000) {
+    return `${value} ms`;
+  }
+  return `${(value / 1_000).toFixed(2)} s`;
+}

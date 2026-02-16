@@ -15,31 +15,63 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1borchestrator/v1/tasks.proto\x12\x0forchestrator.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xcf\x04\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06prompt\x18\x03 \x01(\t\x12+\n\x06status\x18\x04 \x01(\x0e\x32\x1b.orchestrator.v1.TaskStatus\x12\x34\n\x08priority\x18\x05 \x01(\x0e\x32\".orchestrator.v1.ExecutionPriority\x12\x30\n\x0cscheduled_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x31\n\rexecute_after\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12.\n\nstarted_at\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x30\n\x0c\x63ompleted_at\x18\t \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0e\n\x06output\x18\n \x01(\t\x12\x15\n\rerror_message\x18\x0b \x01(\t\x12\x13\n\x0bretry_count\x18\x0c \x01(\x05\x12\x13\n\x0bmax_retries\x18\r \x01(\x05\x12\x16\n\x0eparent_task_id\x18\x0e \x01(\t\x12\x16\n\x0e\x63hain_position\x18\x0f \x01(\x05\x12.\n\ncreated_at\x18\x10 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12.\n\nupdated_at\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x12 \x01(\t\"]\n\x11\x43reateTaskRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06prompt\x18\x02 \x01(\t\x12\x16\n\x0eparent_task_id\x18\x03 \x01(\t\x12\x12\n\ncreated_by\x18\x04 \x01(\t\"9\n\x12\x43reateTaskResponse\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.Task\"1\n\x10ListTasksRequest\x12\r\n\x05limit\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05\"9\n\x11ListTasksResponse\x12$\n\x05tasks\x18\x01 \x03(\x0b\x32\x15.orchestrator.v1.Task\"\x1c\n\x0eGetTaskRequest\x12\n\n\x02id\x18\x01 \x01(\t\"6\n\x0fGetTaskResponse\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.Task*\xc1\x01\n\nTaskStatus\x12\x1b\n\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n\x13TASK_STATUS_PENDING\x10\x01\x12\x16\n\x12TASK_STATUS_QUEUED\x10\x02\x12\x17\n\x13TASK_STATUS_RUNNING\x10\x03\x12\x19\n\x15TASK_STATUS_COMPLETED\x10\x04\x12\x16\n\x12TASK_STATUS_FAILED\x10\x05\x12\x19\n\x15TASK_STATUS_CANCELLED\x10\x06*\xb0\x01\n\x11\x45xecutionPriority\x12\"\n\x1e\x45XECUTION_PRIORITY_UNSPECIFIED\x10\x00\x12\x1a\n\x16\x45XECUTION_PRIORITY_LOW\x10\x01\x12\x1d\n\x19\x45XECUTION_PRIORITY_NORMAL\x10\x02\x12\x1b\n\x17\x45XECUTION_PRIORITY_HIGH\x10\x03\x12\x1f\n\x1b\x45XECUTION_PRIORITY_CRITICAL\x10\x04\x32\x86\x02\n\x0bTaskService\x12U\n\nCreateTask\x12\".orchestrator.v1.CreateTaskRequest\x1a#.orchestrator.v1.CreateTaskResponse\x12R\n\tListTasks\x12!.orchestrator.v1.ListTasksRequest\x1a\".orchestrator.v1.ListTasksResponse\x12L\n\x07GetTask\x12\x1f.orchestrator.v1.GetTaskRequest\x1a .orchestrator.v1.GetTaskResponseb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1borchestrator/v1/tasks.proto\x12\x0forchestrator.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xd8\x02\n\x11\x45xecutionMetadata\x12\x16\n\x0e\x61ttempt_number\x18\x01 \x01(\x05\x12\x12\n\nmodel_name\x18\x02 \x01(\t\x12\x15\n\rprompt_tokens\x18\x03 \x01(\x05\x12\x19\n\x11\x63ompletion_tokens\x18\x04 \x01(\x05\x12\x14\n\x0ctotal_tokens\x18\x05 \x01(\x05\x12\x13\n\x0b\x64uration_ms\x18\x06 \x01(\x03\x12\x11\n\tworker_id\x18\x07 \x01(\t\x12\x16\n\x0e\x63\x65lery_task_id\x18\x08 \x01(\t\x12-\n\tqueued_at\x18\t \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12.\n\nstarted_at\x18\n \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x30\n\x0c\x63ompleted_at\x18\x0b \x01(\x0b\x32\x1a.google.protobuf.Timestamp\"\xbf\x05\n\x04Task\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x0e\n\x06prompt\x18\x03 \x01(\t\x12+\n\x06status\x18\x04 \x01(\x0e\x32\x1b.orchestrator.v1.TaskStatus\x12\x34\n\x08priority\x18\x05 \x01(\x0e\x32\".orchestrator.v1.ExecutionPriority\x12\x30\n\x0cscheduled_at\x18\x06 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x31\n\rexecute_after\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12.\n\nstarted_at\x18\x08 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x30\n\x0c\x63ompleted_at\x18\t \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x0e\n\x06output\x18\n \x01(\t\x12\x15\n\rerror_message\x18\x0b \x01(\t\x12\x13\n\x0bretry_count\x18\x0c \x01(\x05\x12\x13\n\x0bmax_retries\x18\r \x01(\x05\x12\x16\n\x0eparent_task_id\x18\x0e \x01(\t\x12\x16\n\x0e\x63hain_position\x18\x0f \x01(\x05\x12.\n\ncreated_at\x18\x10 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12.\n\nupdated_at\x18\x11 \x01(\x0b\x32\x1a.google.protobuf.Timestamp\x12\x12\n\ncreated_by\x18\x12 \x01(\t\x12\x44\n\x18latest_execution_metrics\x18\x15 \x01(\x0b\x32\".orchestrator.v1.ExecutionMetadataJ\x04\x08\x13\x10\x14J\x04\x08\x14\x10\x15R\x08metadataR\x12\x65xecution_metadata\"c\n\x11\x43reateTaskRequest\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06prompt\x18\x02 \x01(\t\x12\x16\n\x0eparent_task_id\x18\x03 \x01(\t\x12\x12\n\ncreated_by\x18\x04 \x01(\tJ\x04\x08\x05\x10\x06\"9\n\x12\x43reateTaskResponse\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.Task\"7\n\x10ListTasksRequest\x12\r\n\x05limit\x18\x01 \x01(\x05\x12\x0e\n\x06offset\x18\x02 \x01(\x05J\x04\x08\x03\x10\x04\"?\n\x11ListTasksResponse\x12$\n\x05tasks\x18\x01 \x03(\x0b\x32\x15.orchestrator.v1.TaskJ\x04\x08\x02\x10\x03\"\"\n\x0eGetTaskRequest\x12\n\n\x02id\x18\x01 \x01(\tJ\x04\x08\x02\x10\x03\"<\n\x0fGetTaskResponse\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.TaskJ\x04\x08\x02\x10\x03\"%\n\x11\x43\x61ncelTaskRequest\x12\n\n\x02id\x18\x01 \x01(\tJ\x04\x08\x02\x10\x03\"?\n\x12\x43\x61ncelTaskResponse\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.TaskJ\x04\x08\x02\x10\x03\"$\n\x10RetryTaskRequest\x12\n\n\x02id\x18\x01 \x01(\tJ\x04\x08\x02\x10\x03\">\n\x11RetryTaskResponse\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.TaskJ\x04\x08\x02\x10\x03\"e\n\x13\x42\x61tchCreateTaskItem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x0e\n\x06prompt\x18\x02 \x01(\t\x12\x16\n\x0eparent_task_id\x18\x03 \x01(\t\x12\x12\n\ncreated_by\x18\x04 \x01(\tJ\x04\x08\x05\x10\x06\"T\n\x17\x42\x61tchCreateTasksRequest\x12\x33\n\x05tasks\x18\x01 \x03(\x0b\x32$.orchestrator.v1.BatchCreateTaskItemJ\x04\x08\x02\x10\x03\"F\n\x18\x42\x61tchCreateTasksResponse\x12$\n\x05tasks\x18\x01 \x03(\x0b\x32\x15.orchestrator.v1.TaskJ\x04\x08\x02\x10\x03\"\\\n\x0cTaskTemplate\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\x13\n\x0b\x64\x65scription\x18\x03 \x01(\t\x12\x17\n\x0fprompt_template\x18\x04 \x01(\tJ\x04\x08\x05\x10\x06\" \n\x18ListTaskTemplatesRequestJ\x04\x08\x01\x10\x02\"S\n\x19ListTaskTemplatesResponse\x12\x30\n\ttemplates\x18\x01 \x03(\x0b\x32\x1d.orchestrator.v1.TaskTemplateJ\x04\x08\x02\x10\x03\"\x88\x01\n\x1d\x43reateTaskFromTemplateRequest\x12\x13\n\x0btemplate_id\x18\x01 \x01(\t\x12\x12\n\ninput_text\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x16\n\x0eparent_task_id\x18\x04 \x01(\t\x12\x12\n\ncreated_by\x18\x05 \x01(\tJ\x04\x08\x06\x10\x07\"K\n\x1e\x43reateTaskFromTemplateResponse\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.TaskJ\x04\x08\x02\x10\x03\"K\n\x0fTaskLineageNode\x12#\n\x04task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.Task\x12\r\n\x05\x64\x65pth\x18\x02 \x01(\x05J\x04\x08\x03\x10\x04\"<\n\x15GetTaskLineageRequest\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\tmax_depth\x18\x02 \x01(\x05J\x04\x08\x03\x10\x04\"\xb4\x01\n\x16GetTaskLineageResponse\x12(\n\troot_task\x18\x01 \x01(\x0b\x32\x15.orchestrator.v1.Task\x12\x33\n\tancestors\x18\x02 \x03(\x0b\x32 .orchestrator.v1.TaskLineageNode\x12\x35\n\x0b\x64\x65scendants\x18\x03 \x03(\x0b\x32 .orchestrator.v1.TaskLineageNodeJ\x04\x08\x04\x10\x05*\xc1\x01\n\nTaskStatus\x12\x1b\n\x17TASK_STATUS_UNSPECIFIED\x10\x00\x12\x17\n\x13TASK_STATUS_PENDING\x10\x01\x12\x16\n\x12TASK_STATUS_QUEUED\x10\x02\x12\x17\n\x13TASK_STATUS_RUNNING\x10\x03\x12\x19\n\x15TASK_STATUS_COMPLETED\x10\x04\x12\x16\n\x12TASK_STATUS_FAILED\x10\x05\x12\x19\n\x15TASK_STATUS_CANCELLED\x10\x06*\xb0\x01\n\x11\x45xecutionPriority\x12\"\n\x1e\x45XECUTION_PRIORITY_UNSPECIFIED\x10\x00\x12\x1a\n\x16\x45XECUTION_PRIORITY_LOW\x10\x01\x12\x1d\n\x19\x45XECUTION_PRIORITY_NORMAL\x10\x02\x12\x1b\n\x17\x45XECUTION_PRIORITY_HIGH\x10\x03\x12\x1f\n\x1b\x45XECUTION_PRIORITY_CRITICAL\x10\x04\x32\xe4\x06\n\x0bTaskService\x12U\n\nCreateTask\x12\".orchestrator.v1.CreateTaskRequest\x1a#.orchestrator.v1.CreateTaskResponse\x12R\n\tListTasks\x12!.orchestrator.v1.ListTasksRequest\x1a\".orchestrator.v1.ListTasksResponse\x12L\n\x07GetTask\x12\x1f.orchestrator.v1.GetTaskRequest\x1a .orchestrator.v1.GetTaskResponse\x12U\n\nCancelTask\x12\".orchestrator.v1.CancelTaskRequest\x1a#.orchestrator.v1.CancelTaskResponse\x12R\n\tRetryTask\x12!.orchestrator.v1.RetryTaskRequest\x1a\".orchestrator.v1.RetryTaskResponse\x12g\n\x10\x42\x61tchCreateTasks\x12(.orchestrator.v1.BatchCreateTasksRequest\x1a).orchestrator.v1.BatchCreateTasksResponse\x12j\n\x11ListTaskTemplates\x12).orchestrator.v1.ListTaskTemplatesRequest\x1a*.orchestrator.v1.ListTaskTemplatesResponse\x12y\n\x16\x43reateTaskFromTemplate\x12..orchestrator.v1.CreateTaskFromTemplateRequest\x1a/.orchestrator.v1.CreateTaskFromTemplateResponse\x12\x61\n\x0eGetTaskLineage\x12&.orchestrator.v1.GetTaskLineageRequest\x1a\'.orchestrator.v1.GetTaskLineageResponseb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'orchestrator.v1.tasks_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
-  _globals['_TASKSTATUS']._serialized_start=1026
-  _globals['_TASKSTATUS']._serialized_end=1219
-  _globals['_EXECUTIONPRIORITY']._serialized_start=1222
-  _globals['_EXECUTIONPRIORITY']._serialized_end=1398
-  _globals['_TASK']._serialized_start=82
-  _globals['_TASK']._serialized_end=673
-  _globals['_CREATETASKREQUEST']._serialized_start=675
-  _globals['_CREATETASKREQUEST']._serialized_end=768
-  _globals['_CREATETASKRESPONSE']._serialized_start=770
-  _globals['_CREATETASKRESPONSE']._serialized_end=827
-  _globals['_LISTTASKSREQUEST']._serialized_start=829
-  _globals['_LISTTASKSREQUEST']._serialized_end=878
-  _globals['_LISTTASKSRESPONSE']._serialized_start=880
-  _globals['_LISTTASKSRESPONSE']._serialized_end=937
-  _globals['_GETTASKREQUEST']._serialized_start=939
-  _globals['_GETTASKREQUEST']._serialized_end=967
-  _globals['_GETTASKRESPONSE']._serialized_start=969
-  _globals['_GETTASKRESPONSE']._serialized_end=1023
-  _globals['_TASKSERVICE']._serialized_start=1401
-  _globals['_TASKSERVICE']._serialized_end=1663
+  _globals['_TASKSTATUS']._serialized_start=2733
+  _globals['_TASKSTATUS']._serialized_end=2926
+  _globals['_EXECUTIONPRIORITY']._serialized_start=2929
+  _globals['_EXECUTIONPRIORITY']._serialized_end=3105
+  _globals['_EXECUTIONMETADATA']._serialized_start=82
+  _globals['_EXECUTIONMETADATA']._serialized_end=426
+  _globals['_TASK']._serialized_start=429
+  _globals['_TASK']._serialized_end=1132
+  _globals['_CREATETASKREQUEST']._serialized_start=1134
+  _globals['_CREATETASKREQUEST']._serialized_end=1233
+  _globals['_CREATETASKRESPONSE']._serialized_start=1235
+  _globals['_CREATETASKRESPONSE']._serialized_end=1292
+  _globals['_LISTTASKSREQUEST']._serialized_start=1294
+  _globals['_LISTTASKSREQUEST']._serialized_end=1349
+  _globals['_LISTTASKSRESPONSE']._serialized_start=1351
+  _globals['_LISTTASKSRESPONSE']._serialized_end=1414
+  _globals['_GETTASKREQUEST']._serialized_start=1416
+  _globals['_GETTASKREQUEST']._serialized_end=1450
+  _globals['_GETTASKRESPONSE']._serialized_start=1452
+  _globals['_GETTASKRESPONSE']._serialized_end=1512
+  _globals['_CANCELTASKREQUEST']._serialized_start=1514
+  _globals['_CANCELTASKREQUEST']._serialized_end=1551
+  _globals['_CANCELTASKRESPONSE']._serialized_start=1553
+  _globals['_CANCELTASKRESPONSE']._serialized_end=1616
+  _globals['_RETRYTASKREQUEST']._serialized_start=1618
+  _globals['_RETRYTASKREQUEST']._serialized_end=1654
+  _globals['_RETRYTASKRESPONSE']._serialized_start=1656
+  _globals['_RETRYTASKRESPONSE']._serialized_end=1718
+  _globals['_BATCHCREATETASKITEM']._serialized_start=1720
+  _globals['_BATCHCREATETASKITEM']._serialized_end=1821
+  _globals['_BATCHCREATETASKSREQUEST']._serialized_start=1823
+  _globals['_BATCHCREATETASKSREQUEST']._serialized_end=1907
+  _globals['_BATCHCREATETASKSRESPONSE']._serialized_start=1909
+  _globals['_BATCHCREATETASKSRESPONSE']._serialized_end=1979
+  _globals['_TASKTEMPLATE']._serialized_start=1981
+  _globals['_TASKTEMPLATE']._serialized_end=2073
+  _globals['_LISTTASKTEMPLATESREQUEST']._serialized_start=2075
+  _globals['_LISTTASKTEMPLATESREQUEST']._serialized_end=2107
+  _globals['_LISTTASKTEMPLATESRESPONSE']._serialized_start=2109
+  _globals['_LISTTASKTEMPLATESRESPONSE']._serialized_end=2192
+  _globals['_CREATETASKFROMTEMPLATEREQUEST']._serialized_start=2195
+  _globals['_CREATETASKFROMTEMPLATEREQUEST']._serialized_end=2331
+  _globals['_CREATETASKFROMTEMPLATERESPONSE']._serialized_start=2333
+  _globals['_CREATETASKFROMTEMPLATERESPONSE']._serialized_end=2408
+  _globals['_TASKLINEAGENODE']._serialized_start=2410
+  _globals['_TASKLINEAGENODE']._serialized_end=2485
+  _globals['_GETTASKLINEAGEREQUEST']._serialized_start=2487
+  _globals['_GETTASKLINEAGEREQUEST']._serialized_end=2547
+  _globals['_GETTASKLINEAGERESPONSE']._serialized_start=2550
+  _globals['_GETTASKLINEAGERESPONSE']._serialized_end=2730
+  _globals['_TASKSERVICE']._serialized_start=3108
+  _globals['_TASKSERVICE']._serialized_end=3976
 # @@protoc_insertion_point(module_scope)

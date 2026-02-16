@@ -11,6 +11,7 @@ const GRPC_ERROR_MESSAGES: Partial<Record<grpc.Code, string>> = {
   [grpc.Code.PermissionDenied]: "You do not have permission to perform this action.",
   [grpc.Code.Unauthenticated]: "Authentication is required to perform this action.",
   [grpc.Code.ResourceExhausted]: "Service is currently overloaded. Please retry shortly.",
+  [grpc.Code.Canceled]: "The operation was cancelled before completion.",
   [grpc.Code.FailedPrecondition]: "Request could not be processed in the current state.",
   [grpc.Code.Internal]: "Task service failed to process the request.",
 };

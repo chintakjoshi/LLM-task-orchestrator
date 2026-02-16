@@ -29,6 +29,36 @@ class TaskServiceStub(object):
                 request_serializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskRequest.SerializeToString,
                 response_deserializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskResponse.FromString,
                 )
+        self.CancelTask = channel.unary_unary(
+                '/orchestrator.v1.TaskService/CancelTask',
+                request_serializer=orchestrator_dot_v1_dot_tasks__pb2.CancelTaskRequest.SerializeToString,
+                response_deserializer=orchestrator_dot_v1_dot_tasks__pb2.CancelTaskResponse.FromString,
+                )
+        self.RetryTask = channel.unary_unary(
+                '/orchestrator.v1.TaskService/RetryTask',
+                request_serializer=orchestrator_dot_v1_dot_tasks__pb2.RetryTaskRequest.SerializeToString,
+                response_deserializer=orchestrator_dot_v1_dot_tasks__pb2.RetryTaskResponse.FromString,
+                )
+        self.BatchCreateTasks = channel.unary_unary(
+                '/orchestrator.v1.TaskService/BatchCreateTasks',
+                request_serializer=orchestrator_dot_v1_dot_tasks__pb2.BatchCreateTasksRequest.SerializeToString,
+                response_deserializer=orchestrator_dot_v1_dot_tasks__pb2.BatchCreateTasksResponse.FromString,
+                )
+        self.ListTaskTemplates = channel.unary_unary(
+                '/orchestrator.v1.TaskService/ListTaskTemplates',
+                request_serializer=orchestrator_dot_v1_dot_tasks__pb2.ListTaskTemplatesRequest.SerializeToString,
+                response_deserializer=orchestrator_dot_v1_dot_tasks__pb2.ListTaskTemplatesResponse.FromString,
+                )
+        self.CreateTaskFromTemplate = channel.unary_unary(
+                '/orchestrator.v1.TaskService/CreateTaskFromTemplate',
+                request_serializer=orchestrator_dot_v1_dot_tasks__pb2.CreateTaskFromTemplateRequest.SerializeToString,
+                response_deserializer=orchestrator_dot_v1_dot_tasks__pb2.CreateTaskFromTemplateResponse.FromString,
+                )
+        self.GetTaskLineage = channel.unary_unary(
+                '/orchestrator.v1.TaskService/GetTaskLineage',
+                request_serializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskLineageRequest.SerializeToString,
+                response_deserializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskLineageResponse.FromString,
+                )
 
 
 class TaskServiceServicer(object):
@@ -52,6 +82,42 @@ class TaskServiceServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CancelTask(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RetryTask(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def BatchCreateTasks(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListTaskTemplates(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CreateTaskFromTemplate(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetTaskLineage(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_TaskServiceServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -69,6 +135,36 @@ def add_TaskServiceServicer_to_server(servicer, server):
                     servicer.GetTask,
                     request_deserializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskRequest.FromString,
                     response_serializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskResponse.SerializeToString,
+            ),
+            'CancelTask': grpc.unary_unary_rpc_method_handler(
+                    servicer.CancelTask,
+                    request_deserializer=orchestrator_dot_v1_dot_tasks__pb2.CancelTaskRequest.FromString,
+                    response_serializer=orchestrator_dot_v1_dot_tasks__pb2.CancelTaskResponse.SerializeToString,
+            ),
+            'RetryTask': grpc.unary_unary_rpc_method_handler(
+                    servicer.RetryTask,
+                    request_deserializer=orchestrator_dot_v1_dot_tasks__pb2.RetryTaskRequest.FromString,
+                    response_serializer=orchestrator_dot_v1_dot_tasks__pb2.RetryTaskResponse.SerializeToString,
+            ),
+            'BatchCreateTasks': grpc.unary_unary_rpc_method_handler(
+                    servicer.BatchCreateTasks,
+                    request_deserializer=orchestrator_dot_v1_dot_tasks__pb2.BatchCreateTasksRequest.FromString,
+                    response_serializer=orchestrator_dot_v1_dot_tasks__pb2.BatchCreateTasksResponse.SerializeToString,
+            ),
+            'ListTaskTemplates': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListTaskTemplates,
+                    request_deserializer=orchestrator_dot_v1_dot_tasks__pb2.ListTaskTemplatesRequest.FromString,
+                    response_serializer=orchestrator_dot_v1_dot_tasks__pb2.ListTaskTemplatesResponse.SerializeToString,
+            ),
+            'CreateTaskFromTemplate': grpc.unary_unary_rpc_method_handler(
+                    servicer.CreateTaskFromTemplate,
+                    request_deserializer=orchestrator_dot_v1_dot_tasks__pb2.CreateTaskFromTemplateRequest.FromString,
+                    response_serializer=orchestrator_dot_v1_dot_tasks__pb2.CreateTaskFromTemplateResponse.SerializeToString,
+            ),
+            'GetTaskLineage': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetTaskLineage,
+                    request_deserializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskLineageRequest.FromString,
+                    response_serializer=orchestrator_dot_v1_dot_tasks__pb2.GetTaskLineageResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -128,5 +224,107 @@ class TaskService(object):
         return grpc.experimental.unary_unary(request, target, '/orchestrator.v1.TaskService/GetTask',
             orchestrator_dot_v1_dot_tasks__pb2.GetTaskRequest.SerializeToString,
             orchestrator_dot_v1_dot_tasks__pb2.GetTaskResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CancelTask(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/orchestrator.v1.TaskService/CancelTask',
+            orchestrator_dot_v1_dot_tasks__pb2.CancelTaskRequest.SerializeToString,
+            orchestrator_dot_v1_dot_tasks__pb2.CancelTaskResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def RetryTask(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/orchestrator.v1.TaskService/RetryTask',
+            orchestrator_dot_v1_dot_tasks__pb2.RetryTaskRequest.SerializeToString,
+            orchestrator_dot_v1_dot_tasks__pb2.RetryTaskResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def BatchCreateTasks(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/orchestrator.v1.TaskService/BatchCreateTasks',
+            orchestrator_dot_v1_dot_tasks__pb2.BatchCreateTasksRequest.SerializeToString,
+            orchestrator_dot_v1_dot_tasks__pb2.BatchCreateTasksResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def ListTaskTemplates(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/orchestrator.v1.TaskService/ListTaskTemplates',
+            orchestrator_dot_v1_dot_tasks__pb2.ListTaskTemplatesRequest.SerializeToString,
+            orchestrator_dot_v1_dot_tasks__pb2.ListTaskTemplatesResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def CreateTaskFromTemplate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/orchestrator.v1.TaskService/CreateTaskFromTemplate',
+            orchestrator_dot_v1_dot_tasks__pb2.CreateTaskFromTemplateRequest.SerializeToString,
+            orchestrator_dot_v1_dot_tasks__pb2.CreateTaskFromTemplateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def GetTaskLineage(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/orchestrator.v1.TaskService/GetTaskLineage',
+            orchestrator_dot_v1_dot_tasks__pb2.GetTaskLineageRequest.SerializeToString,
+            orchestrator_dot_v1_dot_tasks__pb2.GetTaskLineageResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
