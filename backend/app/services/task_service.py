@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime, timedelta
 from uuid import UUID
 from uuid import uuid4
 
@@ -65,13 +66,24 @@ class TaskService:
             if parent_task is None:
                 raise ParentTaskNotFoundError("Parent task does not exist")
 
+        execute_after = data.execute_after
+        if execute_after is not None:
+            execute_after = self._normalize_datetime(execute_after)
+            if execute_after <= datetime.now(tz=UTC) + timedelta(seconds=1):
+                execute_after = None
+
         task = self.repository.create(
             name=data.name,
             prompt=data.prompt,
             parent_task_id=parent_task_id,
             created_by=data.created_by,
+            execute_after=execute_after,
         )
-        queued_task = self._enqueue_llm_task(task_id=task.id)
+        enqueue_eta = execute_after
+        queued_task = self._enqueue_llm_task(
+            task_id=task.id,
+            eta=enqueue_eta,
+        )
         return queued_task
 
     def list_tasks(self, data: TaskListInput):
@@ -245,6 +257,7 @@ class TaskService:
         *,
         task_id: UUID,
         increment_retry_count: bool = False,
+        eta: datetime | None = None,
     ):
         task = self.repository.get_by_id(task_id)
         if task is None:
@@ -260,10 +273,15 @@ class TaskService:
             raise TaskNotFoundError("Task not found")
 
         try:
+            send_task_kwargs: dict[str, object] = {
+                "kwargs": {"task_id": str(task.id)},
+                "task_id": celery_task_id,
+            }
+            if eta is not None:
+                send_task_kwargs["eta"] = self._normalize_datetime(eta)
             celery_app.send_task(
                 EXECUTE_LLM_TASK_NAME,
-                kwargs={"task_id": str(task.id)},
-                task_id=celery_task_id,
+                **send_task_kwargs,
             )
         except Exception as exc:  # pragma: no cover - network/system dependent
             self.repository.mark_failed(
@@ -275,6 +293,12 @@ class TaskService:
             raise TaskEnqueueError("Failed to submit task to Celery") from exc
 
         return queued_task
+
+    @staticmethod
+    def _normalize_datetime(value: datetime) -> datetime:
+        if value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
     def _get_template_by_id(self, template_id: str) -> TaskTemplateDefinition:
         normalized_id = template_id.strip()

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import grpc
@@ -41,6 +42,17 @@ logger = logging.getLogger(__name__)
 
 
 class TaskServiceGrpcHandler(tasks_pb2_grpc.TaskServiceServicer):
+    @staticmethod
+    def _get_execute_after(value: object) -> datetime | None:
+        if not hasattr(value, "HasField"):
+            return None
+        if not value.HasField("execute_after"):
+            return None
+        execute_after = value.execute_after.ToDatetime()
+        if execute_after.tzinfo is None:
+            execute_after = execute_after.replace(tzinfo=UTC)
+        return execute_after.astimezone(UTC)
+
     @staticmethod
     def _metadata_map(context: grpc.ServicerContext) -> dict[str, str]:
         metadata: dict[str, str] = {}
@@ -106,6 +118,7 @@ class TaskServiceGrpcHandler(tasks_pb2_grpc.TaskServiceServicer):
                 prompt=request.prompt,
                 parent_task_id=request.parent_task_id or None,
                 created_by=request.created_by or user_id or None,
+                execute_after=self._get_execute_after(request),
             )
         except ValidationError as exc:
             self._abort(

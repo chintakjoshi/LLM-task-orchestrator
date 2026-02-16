@@ -20,12 +20,14 @@ class TaskRepository:
         prompt: str,
         parent_task_id: uuid.UUID | None,
         created_by: str | None,
+        execute_after: datetime | None,
     ) -> Task:
         task = Task(
             name=name,
             prompt=prompt,
             parent_task_id=parent_task_id,
             created_by=created_by,
+            execute_after=execute_after,
         )
         self.db.add(task)
         self.db.commit()

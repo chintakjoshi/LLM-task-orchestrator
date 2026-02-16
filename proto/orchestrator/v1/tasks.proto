@@ -71,6 +71,7 @@ message CreateTaskRequest {
   string prompt = 2;
   string parent_task_id = 3;
   string created_by = 4;
+  google.protobuf.Timestamp execute_after = 6;
 
   // Reserved for backward-compatible evolution.
   reserved 5;

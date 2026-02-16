@@ -20,6 +20,7 @@ export interface CreateTaskInput {
   name: string;
   prompt: string;
   parentTaskId?: string;
+  executeAfter?: Date;
 }
 
 export interface BatchCreateTaskInput {
@@ -101,6 +102,7 @@ export async function createTask({
   name,
   prompt,
   parentTaskId,
+  executeAfter,
 }: CreateTaskInput): Promise<TaskRecord> {
   return invokeRpc(async (metadata, userId) => {
     const response = await taskServiceClient.CreateTask(
@@ -109,6 +111,7 @@ export async function createTask({
         prompt,
         parentTaskId: parentTaskId ?? "",
         createdBy: userId,
+        executeAfter,
       },
       metadata,
     );
