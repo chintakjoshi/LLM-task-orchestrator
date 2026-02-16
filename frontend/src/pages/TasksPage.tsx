@@ -71,7 +71,7 @@ export default function TasksPage() {
       <div>
         <h2 className="text-xl font-semibold text-slate-900">Tasks</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Create a task and inspect its status and details.
+          Create a task and it will run asynchronously via Celery + NVIDIA NIM.
         </p>
       </div>
 

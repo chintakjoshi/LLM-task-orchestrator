@@ -1,16 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { getTask, triggerTestTask } from "../grpc/tasksApi";
+import { getTask } from "../grpc/tasksApi";
 import {
   formatTimestamp,
   taskPriorityLabel,
   taskStatusLabel,
 } from "../grpc/taskFormatters";
-import {
-  TaskStatus,
-  type Task as TaskRecord,
-} from "../grpc/generated/orchestrator/v1/tasks";
+import type { Task as TaskRecord } from "../grpc/generated/orchestrator/v1/tasks";
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) {
@@ -23,9 +20,7 @@ export default function TaskDetailPage() {
   const { taskId } = useParams<{ taskId: string }>();
   const [task, setTask] = useState<TaskRecord | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [triggering, setTriggering] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [info, setInfo] = useState<string>("");
 
   const loadTask = async () => {
     if (!taskId) {
@@ -49,25 +44,6 @@ export default function TaskDetailPage() {
   useEffect(() => {
     void loadTask();
   }, [taskId]);
-
-  const onTriggerTestTask = async () => {
-    if (!taskId) {
-      return;
-    }
-
-    setTriggering(true);
-    setError("");
-    setInfo("");
-    try {
-      const nextTask = await triggerTestTask(taskId, 5);
-      setTask(nextTask);
-      setInfo("Background test task queued. Refresh to monitor status.");
-    } catch (err: unknown) {
-      setError(extractErrorMessage(err, "Failed to trigger test task."));
-    } finally {
-      setTriggering(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -104,10 +80,6 @@ export default function TaskDetailPage() {
     );
   }
 
-  const canTrigger =
-    task.status !== TaskStatus.TASK_STATUS_QUEUED &&
-    task.status !== TaskStatus.TASK_STATUS_RUNNING;
-
   return (
     <section className="space-y-5">
       <div className="space-y-2">
@@ -124,20 +96,7 @@ export default function TaskDetailPage() {
           >
             {loading ? "Refreshing..." : "Refresh"}
           </button>
-          <button
-            type="button"
-            onClick={() => void onTriggerTestTask()}
-            disabled={triggering || !canTrigger}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {triggering ? "Triggering..." : "Trigger Test Task"}
-          </button>
         </div>
-        {info ? (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
-            {info}
-          </p>
-        ) : null}
       </div>
 
       <dl className="grid gap-3 rounded-xl border border-line bg-slate-50/70 p-4 sm:grid-cols-2">
@@ -175,6 +134,28 @@ export default function TaskDetailPage() {
           {task.prompt}
         </pre>
       </div>
+
+      {task.output ? (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Output
+          </h3>
+          <pre className="overflow-x-auto rounded-xl border border-line bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
+            {task.output}
+          </pre>
+        </div>
+      ) : null}
+
+      {task.errorMessage ? (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-rose-600">
+            Error
+          </h3>
+          <pre className="overflow-x-auto rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-relaxed text-rose-700">
+            {task.errorMessage}
+          </pre>
+        </div>
+      ) : null}
     </section>
   );
 }
