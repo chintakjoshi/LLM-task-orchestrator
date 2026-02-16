@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: llm_orchestrator_postgres
+    container_name: postgres
     environment:
       POSTGRES_DB: llm_orchestrator
       POSTGRES_USER: postgres
@@ -18,7 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: llm_orchestrator_redis
+    container_name: redis
     ports:
       - "6379:6379"
     command: ["redis-server", "--save", "", "--appendonly", "no"]
@@ -27,7 +27,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: llm_orchestrator_backend
+    container_name: backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,9 +44,39 @@ services:
     ports:
       - "8000:8000"
 
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: celery_worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      backend:
+        condition: service_started
+    environment:
+      APP_NAME: Mini LLM Task Orchestrator
+      ENVIRONMENT: development
+      DEBUG: "true"
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/llm_orchestrator
+      REDIS_URL: redis://redis:6379/0
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: 50051
+    command:
+      [
+        "celery",
+        "-A",
+        "app.workers.celery_app:celery_app",
+        "worker",
+        "--loglevel=info",
+        "--concurrency=2",
+      ]
+
   envoy:
     image: envoyproxy/envoy:v1.31-latest
-    container_name: llm_orchestrator_envoy
+    container_name: envoy
     depends_on:
       backend:
         condition: service_started
@@ -60,7 +90,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: llm_orchestrator_frontend
+    container_name: frontend
     depends_on:
       envoy:
         condition: service_started

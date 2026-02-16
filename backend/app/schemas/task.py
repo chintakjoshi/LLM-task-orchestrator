@@ -22,6 +22,11 @@ class TaskGetInput(BaseModel):
     id: UUID
 
 
+class TaskTriggerTestInput(BaseModel):
+    id: UUID
+    sleep_seconds: Annotated[int, Field(ge=1, le=300)] = 5
+
+
 class TaskRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
