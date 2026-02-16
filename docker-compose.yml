@@ -39,8 +39,22 @@ services:
       DEBUG: "true"
       DATABASE_URL: postgresql+psycopg://postgres:postgres@postgres:5432/llm_orchestrator
       REDIS_URL: redis://redis:6379/0
+      GRPC_HOST: 0.0.0.0
+      GRPC_PORT: 50051
     ports:
       - "8000:8000"
+
+  envoy:
+    image: envoyproxy/envoy:v1.31-latest
+    container_name: llm_orchestrator_envoy
+    depends_on:
+      backend:
+        condition: service_started
+    volumes:
+      - ./envoy/envoy.yaml:/etc/envoy/envoy.yaml:ro
+    ports:
+      - "8080:8080"
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "info"]
 
   frontend:
     build:
@@ -48,7 +62,7 @@ services:
       dockerfile: Dockerfile
     container_name: llm_orchestrator_frontend
     depends_on:
-      backend:
+      envoy:
         condition: service_started
     ports:
       - "5173:5173"

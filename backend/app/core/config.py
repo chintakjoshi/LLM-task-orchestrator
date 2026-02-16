@@ -10,6 +10,8 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/llm_orchestrator"
     redis_url: str = "redis://localhost:6379/0"
+    grpc_host: str = "0.0.0.0"
+    grpc_port: int = 50051
 
     model_config = SettingsConfigDict(
         env_file=".env",

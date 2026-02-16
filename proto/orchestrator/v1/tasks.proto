@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package orchestrator.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message Task {
+  string id = 1;
+  string name = 2;
+  string prompt = 3;
+  TaskStatus status = 4;
+  ExecutionPriority priority = 5;
+  google.protobuf.Timestamp scheduled_at = 6;
+  google.protobuf.Timestamp execute_after = 7;
+  google.protobuf.Timestamp started_at = 8;
+  google.protobuf.Timestamp completed_at = 9;
+  string output = 10;
+  string error_message = 11;
+  int32 retry_count = 12;
+  int32 max_retries = 13;
+  string parent_task_id = 14;
+  int32 chain_position = 15;
+  google.protobuf.Timestamp created_at = 16;
+  google.protobuf.Timestamp updated_at = 17;
+  string created_by = 18;
+}
+
+enum TaskStatus {
+  TASK_STATUS_UNSPECIFIED = 0;
+  TASK_STATUS_PENDING = 1;
+  TASK_STATUS_QUEUED = 2;
+  TASK_STATUS_RUNNING = 3;
+  TASK_STATUS_COMPLETED = 4;
+  TASK_STATUS_FAILED = 5;
+  TASK_STATUS_CANCELLED = 6;
+}
+
+enum ExecutionPriority {
+  EXECUTION_PRIORITY_UNSPECIFIED = 0;
+  EXECUTION_PRIORITY_LOW = 1;
+  EXECUTION_PRIORITY_NORMAL = 2;
+  EXECUTION_PRIORITY_HIGH = 3;
+  EXECUTION_PRIORITY_CRITICAL = 4;
+}
+
+message CreateTaskRequest {
+  string name = 1;
+  string prompt = 2;
+  string parent_task_id = 3;
+  string created_by = 4;
+}
+
+message CreateTaskResponse {
+  Task task = 1;
+}
+
+message ListTasksRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+}
+
+message ListTasksResponse {
+  repeated Task tasks = 1;
+}
+
+message GetTaskRequest {
+  string id = 1;
+}
+
+message GetTaskResponse {
+  Task task = 1;
+}
+
+service TaskService {
+  rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
+  rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
+  rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
+}
