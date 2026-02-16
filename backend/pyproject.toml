@@ -14,7 +14,10 @@ dependencies = [
   "alembic==1.15.1",
   "psycopg[binary]==3.2.6",
   "pydantic-settings==2.8.1",
-  "python-dotenv==1.0.1"
+  "python-dotenv==1.0.1",
+  "grpcio==1.62.3",
+  "grpcio-tools==1.62.3",
+  "protobuf==4.25.8"
 ]
 
 [tool.setuptools.packages.find]
