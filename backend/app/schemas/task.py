@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 
 class TaskCreateInput(BaseModel):
@@ -20,16 +20,3 @@ class TaskListInput(BaseModel):
 
 class TaskGetInput(BaseModel):
     id: UUID
-
-
-class TaskTriggerTestInput(BaseModel):
-    id: UUID
-    sleep_seconds: Annotated[int, Field(ge=1, le=300)] = 5
-
-
-class TaskRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: UUID
-    name: str
-    prompt: str

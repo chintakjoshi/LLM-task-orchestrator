@@ -71,19 +71,8 @@ message GetTaskResponse {
   Task task = 1;
 }
 
-message TriggerTestTaskRequest {
-  string id = 1;
-  int32 sleep_seconds = 2;
-}
-
-message TriggerTestTaskResponse {
-  Task task = 1;
-  string celery_task_id = 2;
-}
-
 service TaskService {
   rpc CreateTask(CreateTaskRequest) returns (CreateTaskResponse);
   rpc ListTasks(ListTasksRequest) returns (ListTasksResponse);
   rpc GetTask(GetTaskRequest) returns (GetTaskResponse);
-  rpc TriggerTestTask(TriggerTestTaskRequest) returns (TriggerTestTaskResponse);
 }

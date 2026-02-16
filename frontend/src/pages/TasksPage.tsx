@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 import { createTask, listTasks } from "../grpc/tasksApi";
-import { formatTimestamp, taskStatusLabel } from "../grpc/taskFormatters";
+import { formatTimestamp, isTaskActive, taskStatusLabel } from "../grpc/taskFormatters";
 import type { Task as TaskRecord } from "../grpc/generated/orchestrator/v1/tasks";
 
 interface TaskFormValues {
@@ -15,6 +15,7 @@ const INITIAL_FORM: TaskFormValues = {
   name: "",
   prompt: "",
 };
+const POLL_INTERVAL_MS = 2500;
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) {
@@ -23,29 +24,56 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function truncateText(value: string, maxLength = 160): string {
+  if (value.length <= maxLength) {
+    return value;
+  }
+  return `${value.slice(0, maxLength)}...`;
+}
+
 export default function TasksPage() {
   const [formValues, setFormValues] = useState<TaskFormValues>(INITIAL_FORM);
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const hasActiveTasks = tasks.some((task) => isTaskActive(task.status));
 
-  const loadTasks = async () => {
-    setLoading(true);
-    setError("");
+  const loadTasks = useCallback(async (showLoading: boolean) => {
+    if (showLoading) {
+      setLoading(true);
+    }
+
     try {
       const nextTasks = await listTasks();
       setTasks(nextTasks);
+      setError("");
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "Failed to load tasks."));
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
-  };
+  }, []);
 
   useEffect(() => {
-    void loadTasks();
-  }, []);
+    void loadTasks(true);
+  }, [loadTasks]);
+
+  useEffect(() => {
+    if (!hasActiveTasks) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadTasks(false);
+    }, POLL_INTERVAL_MS);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [hasActiveTasks, loadTasks]);
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -58,7 +86,7 @@ export default function TasksPage() {
         prompt: formValues.prompt.trim(),
       });
       setFormValues(INITIAL_FORM);
-      await loadTasks();
+      await loadTasks(true);
     } catch (err: unknown) {
       setError(extractErrorMessage(err, "Failed to create task."));
     } finally {
@@ -136,13 +164,18 @@ export default function TasksPage() {
         <h3 className="text-lg font-semibold text-slate-900">Task List</h3>
         <button
           type="button"
-          onClick={() => void loadTasks()}
+          onClick={() => void loadTasks(true)}
           disabled={loading}
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
+      {hasActiveTasks ? (
+        <p className="text-xs text-slate-500">
+          Auto-refreshing every 2.5 seconds while tasks are pending, queued, or running.
+        </p>
+      ) : null}
 
       {loading && tasks.length === 0 ? (
         <p className="text-sm text-slate-600">Loading tasks...</p>
@@ -170,8 +203,17 @@ export default function TasksPage() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                Created: {formatTimestamp(task.createdAt)}
+                Created: {formatTimestamp(task.createdAt)} | Started:{" "}
+                {formatTimestamp(task.startedAt)} | Completed: {formatTimestamp(task.completedAt)}
               </p>
+              {task.output ? (
+                <p className="mt-1 text-xs text-slate-600">Output: {truncateText(task.output)}</p>
+              ) : null}
+              {task.errorMessage ? (
+                <p className="mt-1 text-xs text-rose-600">
+                  Error: {truncateText(task.errorMessage)}
+                </p>
+              ) : null}
             </li>
           ))}
         </ul>
