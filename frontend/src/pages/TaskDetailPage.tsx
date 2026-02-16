@@ -6,6 +6,7 @@ import {
   formatTimestamp,
   isTaskActive,
   taskPriorityLabel,
+  taskStatusBadgeClass,
   taskStatusLabel,
 } from "../grpc/taskFormatters";
 import { TaskStatus, type Task as TaskRecord } from "../grpc/generated/orchestrator/v1/tasks";
@@ -34,13 +35,14 @@ export default function TaskDetailPage() {
   const [parentTask, setParentTask] = useState<TaskRecord | null>(null);
   const [childTasks, setChildTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>("");
+  const [loadError, setLoadError] = useState<string>("");
+  const [lineageWarning, setLineageWarning] = useState<string>("");
   const taskIsActive = task ? isTaskActive(task.status) : false;
 
   const loadTask = useCallback(
     async (showLoading: boolean) => {
       if (!taskId) {
-        setError("Task ID is missing.");
+        setLoadError("Task ID is missing.");
         setLoading(false);
         return;
       }
@@ -50,20 +52,31 @@ export default function TaskDetailPage() {
       }
 
       try {
-        const [nextTask, allTasks] = await Promise.all([getTask(taskId), listTasks()]);
-        const nextParentTask = nextTask.parentTaskId
-          ? allTasks.find((candidate) => candidate.id === nextTask.parentTaskId) ?? null
-          : null;
-        const nextChildTasks = allTasks.filter((candidate) => candidate.parentTaskId === nextTask.id);
-
+        const nextTask = await getTask(taskId);
         setTask(nextTask);
-        setParentTask(nextParentTask);
-        setChildTasks(nextChildTasks);
-        setError("");
+        setLoadError("");
+
+        try {
+          const allTasks = await listTasks();
+          const nextParentTask = nextTask.parentTaskId
+            ? allTasks.find((candidate) => candidate.id === nextTask.parentTaskId) ?? null
+            : null;
+          const nextChildTasks = allTasks.filter((candidate) => candidate.parentTaskId === nextTask.id);
+          setParentTask(nextParentTask);
+          setChildTasks(nextChildTasks);
+          setLineageWarning("");
+        } catch (lineageErr: unknown) {
+          setParentTask(null);
+          setChildTasks([]);
+          setLineageWarning(
+            extractErrorMessage(lineageErr, "Lineage links are temporarily unavailable."),
+          );
+        }
       } catch (err: unknown) {
-        setError(extractErrorMessage(err, "Failed to load task."));
+        setLoadError(extractErrorMessage(err, "Failed to load task."));
         setParentTask(null);
         setChildTasks([]);
+        setLineageWarning("");
       } finally {
         if (showLoading) {
           setLoading(false);
@@ -95,21 +108,34 @@ export default function TaskDetailPage() {
     return (
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-900">Task Detail</h2>
-        <p className="text-sm text-slate-600">Loading task...</p>
+        <div className="animate-pulse rounded-xl border border-line bg-slate-50/70 p-4">
+          <div className="h-4 w-40 rounded bg-slate-200" />
+          <div className="mt-3 h-3 w-72 rounded bg-slate-100" />
+          <div className="mt-3 h-24 rounded bg-slate-100" />
+        </div>
       </section>
     );
   }
 
-  if (error) {
+  if (loadError) {
     return (
       <section className="space-y-3">
         <h2 className="text-xl font-semibold text-slate-900">Task Detail</h2>
-        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
-          {error}
-        </p>
-        <Link to="/tasks" className="text-sm font-medium text-blue-700 hover:underline">
-          Back to tasks
-        </Link>
+        <div className="space-y-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm font-medium text-rose-700">
+          <p>{loadError}</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => void loadTask(true)}
+              className="rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-400"
+            >
+              Retry
+            </button>
+            <Link to="/tasks" className="rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-400">
+              Back to tasks
+            </Link>
+          </div>
+        </div>
       </section>
     );
   }
@@ -163,6 +189,11 @@ export default function TaskDetailPage() {
             </button>
           ) : null}
         </div>
+        {lineageWarning ? (
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+            {lineageWarning}
+          </p>
+        ) : null}
         {taskIsActive ? (
           <p className="text-xs text-slate-500">
             Auto-refreshing every 2.5 seconds while task is active.
@@ -181,7 +212,11 @@ export default function TaskDetailPage() {
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</dt>
-          <dd className="mt-1 text-sm text-slate-800">{taskStatusLabel(task.status)}</dd>
+          <dd className="mt-1">
+            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${taskStatusBadgeClass(task.status)}`}>
+              {taskStatusLabel(task.status)}
+            </span>
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Priority</dt>
@@ -260,6 +295,10 @@ export default function TaskDetailPage() {
             {task.output}
           </pre>
         </div>
+      ) : task.status === TaskStatus.TASK_STATUS_COMPLETED ? (
+        <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+          Task completed with no output content.
+        </p>
       ) : null}
 
       {task.errorMessage ? (

@@ -3,7 +3,12 @@ import type { FormEvent } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { createTask, listTasks } from "../grpc/tasksApi";
-import { formatTimestamp, isTaskActive, taskStatusLabel } from "../grpc/taskFormatters";
+import {
+  formatTimestamp,
+  isTaskActive,
+  taskStatusBadgeClass,
+  taskStatusLabel,
+} from "../grpc/taskFormatters";
 import type { Task as TaskRecord } from "../grpc/generated/orchestrator/v1/tasks";
 
 interface TaskFormValues {
@@ -81,7 +86,10 @@ export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [submitting, setSubmitting] = useState<boolean>(false);
-  const [error, setError] = useState<string>("");
+  const [listError, setListError] = useState<string>("");
+  const [formError, setFormError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
+  const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const hasActiveTasks = tasks.some((task) => isTaskActive(task.status));
   const childCountByParentId = useMemo(() => {
     const map = new Map<string, number>();
@@ -119,9 +127,10 @@ export default function TasksPage() {
           setParentTaskName(parentTask.name);
         }
       }
-      setError("");
+      setListError("");
+      setLastRefreshedAt(new Date());
     } catch (err: unknown) {
-      setError(extractErrorMessage(err, "Failed to load tasks."));
+      setListError(extractErrorMessage(err, "Failed to load tasks."));
     } finally {
       if (showLoading) {
         setLoading(false);
@@ -149,20 +158,29 @@ export default function TasksPage() {
 
   const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const trimmedName = formValues.name.trim();
+    const trimmedPrompt = formValues.prompt.trim();
+    if (!trimmedName || !trimmedPrompt) {
+      setFormError("Name and prompt are required.");
+      return;
+    }
+
     setSubmitting(true);
-    setError("");
+    setFormError("");
+    setSuccessMessage("");
 
     try {
       await createTask({
-        name: formValues.name.trim(),
-        prompt: formValues.prompt.trim(),
+        name: trimmedName,
+        prompt: trimmedPrompt,
         parentTaskId: parentTaskId || undefined,
       });
       setFormValues(INITIAL_FORM);
       clearChainContext();
-      await loadTasks(true);
+      setSuccessMessage(`Task "${trimmedName}" created successfully.`);
+      await loadTasks(false);
     } catch (err: unknown) {
-      setError(extractErrorMessage(err, "Failed to create task."));
+      setFormError(extractErrorMessage(err, "Failed to create task."));
     } finally {
       setSubmitting(false);
     }
@@ -174,6 +192,9 @@ export default function TasksPage() {
         <h2 className="text-xl font-semibold text-slate-900">Tasks</h2>
         <p className="mt-1 text-sm text-slate-600">
           Create a task and it will run asynchronously via Celery + NVIDIA NIM.
+        </p>
+        <p className="mt-2 text-xs text-slate-500">
+          Last refreshed: {lastRefreshedAt ? formatTimestamp(lastRefreshedAt) : "Not yet"}
         </p>
       </div>
 
@@ -197,7 +218,7 @@ export default function TasksPage() {
       ) : null}
 
       <form
-        className="space-y-3 rounded-xl border border-line bg-slate-50/70 p-4"
+        className="space-y-3 rounded-xl border border-line bg-slate-50/70 p-4 shadow-sm"
         onSubmit={onSubmit}
       >
         <div>
@@ -247,13 +268,18 @@ export default function TasksPage() {
         >
           {submitting ? "Creating..." : "Create Task"}
         </button>
-      </form>
 
-      {error ? (
-        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
-          {error}
-        </p>
-      ) : null}
+        {formError ? (
+          <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+            {formError}
+          </p>
+        ) : null}
+        {successMessage ? (
+          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700">
+            {successMessage}
+          </p>
+        ) : null}
+      </form>
 
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-lg font-semibold text-slate-900">Task List</h3>
@@ -266,6 +292,20 @@ export default function TasksPage() {
           {loading ? "Refreshing..." : "Refresh"}
         </button>
       </div>
+
+      {listError ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700">
+          <p>{listError}</p>
+          <button
+            type="button"
+            onClick={() => void loadTasks(true)}
+            className="rounded-md border border-rose-300 bg-white px-2.5 py-1 text-xs font-semibold text-rose-700 transition hover:border-rose-400"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
+
       {hasActiveTasks ? (
         <p className="text-xs text-slate-500">
           Auto-refreshing every 2.5 seconds while tasks are pending, queued, or running.
@@ -273,7 +313,17 @@ export default function TasksPage() {
       ) : null}
 
       {loading && tasks.length === 0 ? (
-        <p className="text-sm text-slate-600">Loading tasks...</p>
+        <ul className="space-y-2">
+          {[1, 2, 3].map((row) => (
+            <li
+              key={row}
+              className="animate-pulse rounded-xl border border-line bg-white px-4 py-3"
+            >
+              <div className="h-4 w-40 rounded bg-slate-200" />
+              <div className="mt-2 h-3 w-64 rounded bg-slate-100" />
+            </li>
+          ))}
+        </ul>
       ) : null}
 
       {tasks.length === 0 && !loading ? (
@@ -293,7 +343,9 @@ export default function TasksPage() {
                 >
                   {task.name}
                 </Link>
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                <span
+                  className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${taskStatusBadgeClass(task.status)}`}
+                >
                   {taskStatusLabel(task.status)}
                 </span>
               </div>

@@ -1,11 +1,23 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: "Source Sans 3", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
   @apply m-0 bg-orchestrator-gradient text-ink;
+  min-height: 100vh;
+  font-feature-settings: "liga" 1, "kern" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Manrope", "Source Sans 3", "Segoe UI", sans-serif;
 }
