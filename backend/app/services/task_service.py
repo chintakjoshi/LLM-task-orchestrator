@@ -1,9 +1,19 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 from sqlalchemy.orm import Session
 
+from app.models.task import TaskStatus
 from app.repositories.task_repository import TaskRepository
-from app.schemas.task import TaskCreateInput, TaskGetInput, TaskListInput
+from app.schemas.task import (
+    TaskCreateInput,
+    TaskGetInput,
+    TaskListInput,
+    TaskTriggerTestInput,
+)
+from app.workers.celery_app import celery_app
+from app.workers.task_names import EXECUTE_TEST_TASK_NAME
 
 
 class TaskNotFoundError(Exception):
@@ -11,6 +21,14 @@ class TaskNotFoundError(Exception):
 
 
 class ParentTaskNotFoundError(Exception):
+    pass
+
+
+class TaskAlreadyInProgressError(Exception):
+    pass
+
+
+class TaskEnqueueError(Exception):
     pass
 
 
@@ -40,3 +58,80 @@ class TaskService:
         if task is None:
             raise TaskNotFoundError("Task not found")
         return task
+
+    def trigger_test_task(self, data: TaskTriggerTestInput):
+        task = self.repository.get_by_id(data.id)
+        if task is None:
+            raise TaskNotFoundError("Task not found")
+
+        if task.status in {TaskStatus.queued, TaskStatus.running}:
+            raise TaskAlreadyInProgressError(
+                "Task is already queued or running and cannot be triggered again",
+            )
+
+        try:
+            async_result = celery_app.send_task(
+                EXECUTE_TEST_TASK_NAME,
+                kwargs={
+                    "task_id": str(task.id),
+                    "sleep_seconds": data.sleep_seconds,
+                },
+            )
+        except Exception as exc:  # pragma: no cover - network/system dependent
+            raise TaskEnqueueError("Failed to submit test task to Celery") from exc
+
+        queued_task = self.repository.enqueue_test_execution(
+            task_id=task.id,
+            celery_task_id=async_result.id,
+        )
+        if queued_task is None:
+            raise TaskNotFoundError("Task not found")
+
+        return queued_task, async_result.id
+
+    def mark_test_task_running(
+        self,
+        *,
+        task_id: UUID,
+        celery_task_id: str,
+        worker_id: str | None,
+    ) -> None:
+        task = self.repository.mark_running(
+            task_id=task_id,
+            celery_task_id=celery_task_id,
+            worker_id=worker_id,
+        )
+        if task is None:
+            raise TaskNotFoundError("Task not found")
+
+    def mark_test_task_completed(
+        self,
+        *,
+        task_id: UUID,
+        celery_task_id: str,
+        output: str,
+    ) -> None:
+        task = self.repository.mark_completed(
+            task_id=task_id,
+            celery_task_id=celery_task_id,
+            output=output,
+        )
+        if task is None:
+            raise TaskNotFoundError("Task not found")
+
+    def mark_test_task_failed(
+        self,
+        *,
+        task_id: UUID,
+        celery_task_id: str,
+        error_message: str,
+        error_type: str,
+    ) -> None:
+        task = self.repository.mark_failed(
+            task_id=task_id,
+            celery_task_id=celery_task_id,
+            error_message=error_message,
+            error_type=error_type,
+        )
+        if task is None:
+            raise TaskNotFoundError("Task not found")
