@@ -159,15 +159,14 @@ You can chain tasks together.
 
 ### Tasks
 
-1. Add basic styling (Tailwind or MUI)
+1. Modernize entire UI
 2. Add loading states and error handling
 3. Write comprehensive README:
    - Setup instructions
    - Architecture decisions
    - What you'd improve next
    - Known limitations
-4. Test the entire flow multiple times
-5. Record a short demo video (optional but impressive)
+4. Test the entire flow
 
 ### Deliverable
 A working, documented system.

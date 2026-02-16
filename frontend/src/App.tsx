@@ -1,10 +1,17 @@
-import { Link, Navigate, Route, Routes } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 
 import HomePage from "./pages/HomePage";
 import TaskDetailPage from "./pages/TaskDetailPage";
 import TasksPage from "./pages/TasksPage";
 
 export default function App() {
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `rounded-md border px-3 py-2 text-sm font-medium transition ${
+      isActive
+        ? "border-blue-200 bg-blue-50 text-blue-700"
+        : "border-line bg-white text-slate-700 hover:border-blue-300 hover:text-blue-700"
+    }`;
+
   return (
     <div className="mx-auto min-h-screen max-w-6xl px-4 py-8 lg:px-8">
       <header className="mb-8 rounded-2xl border border-line bg-white/85 p-5 shadow-card backdrop-blur">
@@ -19,18 +26,12 @@ export default function App() {
           </div>
 
           <nav className="flex gap-2">
-            <Link
-              to="/"
-              className="rounded-md border border-line bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-300 hover:text-blue-700"
-            >
+            <NavLink to="/" className={navLinkClass} end>
               Home
-            </Link>
-            <Link
-              to="/tasks"
-              className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100"
-            >
+            </NavLink>
+            <NavLink to="/tasks" className={navLinkClass}>
               Tasks
-            </Link>
+            </NavLink>
           </nav>
         </div>
       </header>
@@ -43,6 +44,10 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+
+      <footer className="mt-6 text-center text-xs text-slate-500">
+        Built with FastAPI, gRPC-web, Celery, Redis, and PostgreSQL.
+      </footer>
     </div>
   );
 }

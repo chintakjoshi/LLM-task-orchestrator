@@ -22,6 +22,21 @@ const ACTIVE_STATUSES = new Set<TaskStatus>([
   TaskStatus.TASK_STATUS_RUNNING,
 ]);
 
+const STATUS_BADGE_CLASSES: Partial<Record<TaskStatus, string>> = {
+  [TaskStatus.TASK_STATUS_PENDING]:
+    "border-amber-200 bg-amber-50 text-amber-700",
+  [TaskStatus.TASK_STATUS_QUEUED]:
+    "border-sky-200 bg-sky-50 text-sky-700",
+  [TaskStatus.TASK_STATUS_RUNNING]:
+    "border-indigo-200 bg-indigo-50 text-indigo-700",
+  [TaskStatus.TASK_STATUS_COMPLETED]:
+    "border-emerald-200 bg-emerald-50 text-emerald-700",
+  [TaskStatus.TASK_STATUS_FAILED]:
+    "border-rose-200 bg-rose-50 text-rose-700",
+  [TaskStatus.TASK_STATUS_CANCELLED]:
+    "border-slate-300 bg-slate-100 text-slate-700",
+};
+
 export function taskStatusLabel(status: TaskStatus): string {
   return STATUS_LABELS[status] ?? "unknown";
 }
@@ -32,6 +47,10 @@ export function taskPriorityLabel(priority: ExecutionPriority): string {
 
 export function isTaskActive(status: TaskStatus): boolean {
   return ACTIVE_STATUSES.has(status);
+}
+
+export function taskStatusBadgeClass(status: TaskStatus): string {
+  return STATUS_BADGE_CLASSES[status] ?? "border-slate-300 bg-slate-100 text-slate-700";
 }
 
 export function formatTimestamp(value: Date | string | undefined): string {
