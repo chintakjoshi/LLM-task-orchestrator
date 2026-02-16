@@ -12,6 +12,7 @@ import { createRpcMetadata } from "./rpcContext";
 export interface CreateTaskInput {
   name: string;
   prompt: string;
+  parentTaskId?: string;
 }
 
 function getTaskFromCreate(response: CreateTaskResponse): TaskRecord {
@@ -40,13 +41,17 @@ async function invokeRpc<T>(
   }
 }
 
-export async function createTask({ name, prompt }: CreateTaskInput): Promise<TaskRecord> {
+export async function createTask({
+  name,
+  prompt,
+  parentTaskId,
+}: CreateTaskInput): Promise<TaskRecord> {
   return invokeRpc(async (metadata, userId) => {
     const response = await taskServiceClient.CreateTask(
       {
         name,
         prompt,
-        parentTaskId: "",
+        parentTaskId: parentTaskId ?? "",
         createdBy: userId,
       },
       metadata,

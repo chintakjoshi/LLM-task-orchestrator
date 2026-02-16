@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { getTask } from "../grpc/tasksApi";
+import { getTask, listTasks } from "../grpc/tasksApi";
 import {
   formatTimestamp,
   isTaskActive,
   taskPriorityLabel,
   taskStatusLabel,
 } from "../grpc/taskFormatters";
-import type { Task as TaskRecord } from "../grpc/generated/orchestrator/v1/tasks";
+import { TaskStatus, type Task as TaskRecord } from "../grpc/generated/orchestrator/v1/tasks";
 
 const POLL_INTERVAL_MS = 2500;
+const SHORT_ID_LENGTH = 8;
 
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) {
@@ -19,9 +20,19 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function abbreviateId(value: string): string {
+  if (value.length <= SHORT_ID_LENGTH) {
+    return value;
+  }
+  return `${value.slice(0, SHORT_ID_LENGTH)}...`;
+}
+
 export default function TaskDetailPage() {
+  const navigate = useNavigate();
   const { taskId } = useParams<{ taskId: string }>();
   const [task, setTask] = useState<TaskRecord | null>(null);
+  const [parentTask, setParentTask] = useState<TaskRecord | null>(null);
+  const [childTasks, setChildTasks] = useState<TaskRecord[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const taskIsActive = task ? isTaskActive(task.status) : false;
@@ -39,11 +50,20 @@ export default function TaskDetailPage() {
       }
 
       try {
-        const nextTask = await getTask(taskId);
+        const [nextTask, allTasks] = await Promise.all([getTask(taskId), listTasks()]);
+        const nextParentTask = nextTask.parentTaskId
+          ? allTasks.find((candidate) => candidate.id === nextTask.parentTaskId) ?? null
+          : null;
+        const nextChildTasks = allTasks.filter((candidate) => candidate.parentTaskId === nextTask.id);
+
         setTask(nextTask);
+        setParentTask(nextParentTask);
+        setChildTasks(nextChildTasks);
         setError("");
       } catch (err: unknown) {
         setError(extractErrorMessage(err, "Failed to load task."));
+        setParentTask(null);
+        setChildTasks([]);
       } finally {
         if (showLoading) {
           setLoading(false);
@@ -106,6 +126,9 @@ export default function TaskDetailPage() {
     );
   }
 
+  const canChainFromTask =
+    task.status === TaskStatus.TASK_STATUS_COMPLETED && Boolean(task.output.trim());
+
   return (
     <section className="space-y-5">
       <div className="space-y-2">
@@ -122,6 +145,23 @@ export default function TaskDetailPage() {
           >
             {loading ? "Refreshing..." : "Refresh"}
           </button>
+          {canChainFromTask ? (
+            <button
+              type="button"
+              onClick={() =>
+                navigate(`/tasks?parentTaskId=${encodeURIComponent(task.id)}`, {
+                  state: {
+                    parentTaskId: task.id,
+                    parentTaskName: task.name,
+                    parentOutput: task.output,
+                  },
+                })
+              }
+              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+            >
+              Use as New Task
+            </button>
+          ) : null}
         </div>
         {taskIsActive ? (
           <p className="text-xs text-slate-500">
@@ -165,7 +205,42 @@ export default function TaskDetailPage() {
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Updated At</dt>
           <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.updatedAt)}</dd>
         </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Parent Task</dt>
+          <dd className="mt-1 text-sm text-slate-800">
+            {task.parentTaskId ? (
+              <Link to={`/tasks/${task.parentTaskId}`} className="text-blue-700 hover:underline">
+                {parentTask?.name ?? abbreviateId(task.parentTaskId)}
+              </Link>
+            ) : (
+              "-"
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Child Tasks</dt>
+          <dd className="mt-1 text-sm text-slate-800">{childTasks.length}</dd>
+        </div>
       </dl>
+
+      {childTasks.length > 0 ? (
+        <div>
+          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            Child Task Links
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {childTasks.map((childTask) => (
+              <Link
+                key={childTask.id}
+                to={`/tasks/${childTask.id}`}
+                className="rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+              >
+                {childTask.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div>
         <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">
