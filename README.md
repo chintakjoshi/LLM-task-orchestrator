@@ -105,13 +105,14 @@ docker compose down
 Create and execute a task:
 1. Open `/tasks`.
 2. Enter `name` and `prompt`.
-3. Submit.
-4. Observe status transitions: `queued -> running -> completed|failed`.
+3. Choose `Run immediately` or `Run later` with `Execute After`.
+4. Submit.
+5. Observe status transitions: `queued -> running -> completed|failed`.
 
 Monitor:
 - Task list auto-polls while active tasks exist.
 - Task detail auto-polls while selected task is active.
-- Detail view shows prompt/output/error/timestamps and latest execution metadata (latency/model/token usage).
+- Detail view shows prompt/output/error/timestamps (created/scheduled/execute-after/start/completion) and latest execution metadata (latency/model/token usage).
 - Task list includes search and status filtering for faster triage.
 
 Chain:
@@ -188,6 +189,7 @@ How orchestration works:
 - service layer owns create/enqueue coordination
 - repository layer owns persistence updates
 - worker layer owns long-running external call and terminal status updates
+- local worker process is configured with `--concurrency=1` to satisfy the assignment's single-task processing assumption
 
 ## Error Handling
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -11,6 +12,7 @@ class TaskCreateInput(BaseModel):
     prompt: Annotated[str, Field(min_length=1)]
     parent_task_id: UUID | None = None
     created_by: Annotated[str | None, Field(max_length=255)] = None
+    execute_after: datetime | None = None
 
 
 class TaskListInput(BaseModel):

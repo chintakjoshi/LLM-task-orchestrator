@@ -21,7 +21,19 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    volumes:
+      - redis_data:/data
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--appendfsync",
+        "everysec",
+        "--save",
+        "60",
+        "1000",
+      ]
 
   backend:
     build:
@@ -75,7 +87,7 @@ services:
         "app.workers.celery_app:celery_app",
         "worker",
         "--loglevel=info",
-        "--concurrency=2",
+        "--concurrency=1",
       ]
 
   envoy:
@@ -113,3 +125,4 @@ services:
 
 volumes:
   postgres_data:
+  redis_data:

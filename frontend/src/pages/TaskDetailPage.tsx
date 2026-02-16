@@ -342,6 +342,14 @@ export default function TaskDetailPage() {
           <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.createdAt)}</dd>
         </div>
         <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Scheduled At</dt>
+          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.scheduledAt)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Execute After</dt>
+          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.executeAfter)}</dd>
+        </div>
+        <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Started At</dt>
           <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.startedAt)}</dd>
         </div>

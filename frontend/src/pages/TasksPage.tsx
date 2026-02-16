@@ -27,6 +27,8 @@ interface TaskFormValues {
   prompt: string;
 }
 
+type TaskTimingMode = "immediate" | "scheduled";
+
 const INITIAL_FORM: TaskFormValues = {
   name: "",
   prompt: "",
@@ -148,6 +150,8 @@ export default function TasksPage() {
   const [batchError, setBatchError] = useState<string>("");
   const [formError, setFormError] = useState<string>("");
   const [successMessage, setSuccessMessage] = useState<string>("");
+  const [timingMode, setTimingMode] = useState<TaskTimingMode>("immediate");
+  const [executeAfterInput, setExecuteAfterInput] = useState<string>("");
   const [lastRefreshedAt, setLastRefreshedAt] = useState<Date | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<TaskStatusFilter>("all");
@@ -189,6 +193,11 @@ export default function TasksPage() {
     () => templates.find((template) => template.id === selectedTemplateId) ?? null,
     [selectedTemplateId, templates],
   );
+  const minScheduleValue = useMemo(() => {
+    const now = new Date();
+    const localNow = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    return localNow.toISOString().slice(0, 16);
+  }, []);
 
   const clearChainContext = useCallback(() => {
     setParentTaskId("");
@@ -264,6 +273,23 @@ export default function TasksPage() {
       setFormError("Name and prompt are required.");
       return;
     }
+    let executeAfter: Date | undefined;
+    if (timingMode === "scheduled") {
+      if (!executeAfterInput.trim()) {
+        setFormError("Select a scheduled time.");
+        return;
+      }
+      const parsedExecuteAfter = new Date(executeAfterInput);
+      if (Number.isNaN(parsedExecuteAfter.getTime())) {
+        setFormError("Scheduled time is invalid.");
+        return;
+      }
+      if (parsedExecuteAfter.getTime() <= Date.now()) {
+        setFormError("Scheduled time must be in the future.");
+        return;
+      }
+      executeAfter = parsedExecuteAfter;
+    }
 
     setSubmitting(true);
     setFormError("");
@@ -274,8 +300,11 @@ export default function TasksPage() {
         name: trimmedName,
         prompt: trimmedPrompt,
         parentTaskId: parentTaskId || undefined,
+        executeAfter,
       });
       setFormValues(INITIAL_FORM);
+      setTimingMode("immediate");
+      setExecuteAfterInput("");
       clearChainContext();
       setSuccessMessage(`Task "${trimmedName}" created successfully.`);
       await loadTasks(false);
@@ -421,6 +450,45 @@ export default function TasksPage() {
             rows={4}
             placeholder={parentTaskId ? "Parent output is prefilled. Refine as needed." : ""}
           />
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm font-medium text-slate-700">Run Time</p>
+          <div className="flex flex-wrap gap-4 text-sm text-slate-700">
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                name="task-run-mode"
+                checked={timingMode === "immediate"}
+                onChange={() => setTimingMode("immediate")}
+              />
+              Run immediately
+            </label>
+            <label className="inline-flex items-center gap-2">
+              <input
+                type="radio"
+                name="task-run-mode"
+                checked={timingMode === "scheduled"}
+                onChange={() => setTimingMode("scheduled")}
+              />
+              Run later
+            </label>
+          </div>
+          {timingMode === "scheduled" ? (
+            <div>
+              <label htmlFor="execute-after" className="mb-1 block text-sm font-medium text-slate-700">
+                Execute After
+              </label>
+              <input
+                id="execute-after"
+                type="datetime-local"
+                value={executeAfterInput}
+                min={minScheduleValue}
+                onChange={(event) => setExecuteAfterInput(event.target.value)}
+                className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none ring-blue-500 transition focus:ring-2"
+              />
+            </div>
+          ) : null}
         </div>
 
         <button
@@ -680,7 +748,8 @@ export default function TasksPage() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-slate-500">
-                Created: {formatTimestamp(task.createdAt)} | Started: {" "}
+                Created: {formatTimestamp(task.createdAt)} | Scheduled: {" "}
+                {formatTimestamp(task.executeAfter || task.scheduledAt)} | Started: {" "}
                 {formatTimestamp(task.startedAt)} | Completed: {formatTimestamp(task.completedAt)}
               </p>
               <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
