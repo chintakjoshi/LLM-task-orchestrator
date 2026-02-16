@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "llm-task-orchestrator-backend"
+version = "0.1.0"
+description = "Backend for Mini LLM Task Orchestrator"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.116.1",
+  "uvicorn[standard]==0.35.0",
+  "SQLAlchemy==2.0.38",
+  "alembic==1.15.1",
+  "psycopg[binary]==3.2.6",
+  "pydantic-settings==2.8.1",
+  "python-dotenv==1.0.1"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.alembic]
+script_location = "alembic"

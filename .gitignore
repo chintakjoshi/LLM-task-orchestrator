@@ -107,6 +107,19 @@ dist
 # Docusaurus cache and generated files
 .docusaurus
 
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
 # Serverless directories
 .serverless/
 
