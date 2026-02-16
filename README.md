@@ -6,19 +6,7 @@ Mini orchestration system for asynchronous LLM task execution with:
 - PostgreSQL persistence
 - Celery + Redis background execution
 - Envoy gRPC-web proxy
-- NVIDIA NIM integration
-
-## Implemented Scope
-
-Phases completed in this repository:
-- Phase 0: setup + infrastructure
-- Phase 1: task CRUD over gRPC-web
-- Phase 2: background execution infrastructure (integrated via real task flow)
-- Phase 3: NVIDIA NIM execution in Celery worker
-- Phase 4: task lifecycle polling UI
-- Phase 5: gRPC-web hardening (metadata, timeouts, error mapping, proto evolution guards)
-- Phase 6: task chaining UX (`Use as New Task`, `parent_task_id`, lineage links)
-- Phase 7: UI polish + expanded docs
+- NVIDIA NIM LLM
 
 ## Architecture
 
@@ -71,7 +59,7 @@ Frontend env (`frontend/.env`):
    - `VITE_USER_ID`
    - `VITE_GRPC_TIMEOUT_SECONDS`
 
-## Run With Docker (Recommended)
+## Run With Docker
 
 Start:
 
@@ -89,67 +77,6 @@ Stop:
 
 ```powershell
 docker compose down
-```
-
-## Local Development (Optional)
-
-Backend:
-
-```powershell
-cd backend
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Worker:
-
-```powershell
-cd backend
-.\.venv\Scripts\activate
-celery -A app.workers.celery_app:celery_app worker --loglevel=info --concurrency=2
-```
-
-Frontend:
-
-```powershell
-cd frontend
-npm ci
-npm run dev
-```
-
-## Database Migrations
-
-Apply latest schema:
-
-```powershell
-cd backend
-alembic upgrade head
-```
-
-The initial migration creates full schema objects from `SAMPLESQL.md`:
-- enums
-- tables
-- indexes
-- triggers
-- views
-- SQL functions
-
-## gRPC Stub Generation
-
-Backend Python stubs:
-
-```powershell
-cd backend
-.\.venv\Scripts\python scripts/generate_grpc_stubs.py
-```
-
-Frontend TypeScript stubs (containerized):
-
-```powershell
-docker run --rm -v "${PWD}:/workspace" -w /workspace/frontend node:22-alpine sh -lc "npm ci && npm run generate:grpc"
 ```
 
 ## Usage Guide
@@ -235,14 +162,6 @@ Build and static checks run:
 - `frontend/node_modules/.bin/tsc --noEmit`
 - `npm run build` (frontend production build)
 
-## Known Limitations
-
-- No authentication/authorization enforcement yet.
-- No explicit cancellation/retry endpoints in API.
-- No dedicated automated integration test suite yet.
-- Task detail lineage currently derives from list queries (not dedicated lineage API).
-- Local gRPC stub generation may vary by host tooling; containerized path is preferred.
-
 ## Future Improvements
 
 - Add authn/authz and tenant-aware access controls.
@@ -252,9 +171,3 @@ Build and static checks run:
 - Add automated end-to-end integration tests with ephemeral infra.
 - Add richer filtering/search/sorting in task list.
 - Add idempotency keys for create flow.
-
-## Security Notes
-
-- Do not commit real `NIM_API_KEY`.
-- Keep `.env` files local only.
-- Use least-privilege database credentials in non-local environments.
