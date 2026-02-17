@@ -1,16 +1,25 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  font-family: "Source Sans 3", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color-scheme: dark;
+  font-family: "DM Sans", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
-  @apply m-0 bg-orchestrator-gradient text-ink;
-  min-height: 100vh;
+  @apply m-0 min-h-screen text-slate-100;
+  background-color: #020202;
+  background-image:
+    radial-gradient(circle at 10% -15%, rgba(255, 255, 255, 0.06), transparent 30%),
+    radial-gradient(circle at 95% 15%, rgba(255, 255, 255, 0.04), transparent 24%),
+    linear-gradient(140deg, #010101 0%, #050505 48%, #0a0a0a 100%);
   font-feature-settings: "liga" 1, "kern" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -18,6 +27,33 @@ body {
 
 h1,
 h2,
-h3 {
-  font-family: "Manrope", "Source Sans 3", "Segoe UI", sans-serif;
+h3,
+h4 {
+  font-family: "Space Grotesk", "DM Sans", "Segoe UI", sans-serif;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+@layer components {
+  .ui-panel {
+    @apply rounded-2xl border border-zinc-800 bg-black/70 shadow-[0_20px_65px_-40px_rgba(0,0,0,0.95)] backdrop-blur;
+  }
+
+  .ui-input {
+    @apply w-full rounded-xl border border-zinc-700 bg-zinc-950/90 px-3 py-2 text-sm text-slate-100 outline-none transition placeholder:text-zinc-500 focus:border-cyan-400/70 focus:ring-2 focus:ring-cyan-500/30;
+  }
+
+  .ui-button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ui-button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-2 text-sm font-semibold text-zinc-200 transition hover:border-zinc-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ui-badge-muted {
+    @apply rounded-full border border-zinc-700 bg-zinc-950/85 px-2 py-0.5 text-[11px] font-medium text-zinc-300;
+  }
 }
