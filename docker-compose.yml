@@ -87,7 +87,7 @@ services:
         "app.workers.celery_app:celery_app",
         "worker",
         "--loglevel=info",
-        "--concurrency=1",
+        "--concurrency=5",
       ]
 
   envoy:
