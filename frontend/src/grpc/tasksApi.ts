@@ -36,6 +36,11 @@ export interface CreateTaskFromTemplateInput {
   parentTaskId?: string;
 }
 
+export interface ListTasksInput {
+  limit?: number;
+  offset?: number;
+}
+
 function getTaskFromCreate(response: CreateTaskResponse): TaskRecord {
   if (!response.task) {
     throw new Error("CreateTask returned an empty task payload.");
@@ -119,12 +124,14 @@ export async function createTask({
   }, "Failed to create task.");
 }
 
-export async function listTasks(): Promise<TaskRecord[]> {
+export async function listTasks(input: ListTasksInput = {}): Promise<TaskRecord[]> {
+  const limit = input.limit ?? 100;
+  const offset = input.offset ?? 0;
   return invokeRpc(async (metadata) => {
     const response = await taskServiceClient.ListTasks(
       {
-        limit: 100,
-        offset: 0,
+        limit,
+        offset,
       },
       metadata,
     );

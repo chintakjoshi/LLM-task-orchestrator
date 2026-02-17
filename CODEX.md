@@ -26,7 +26,7 @@ A lightweight internal prototype for scheduling and managing background LLM task
 3. Create FastAPI project with basic health check endpoint
 4. Create React app with basic routing
 5. Set up Alembic for migrations
-6. Create full production schema (all enums/tables/indexes/triggers/views/functions from `SAMPLESQL.md`)
+6. Create full production schema
 7. Run first migration
 8. Verify database connection from FastAPI
 

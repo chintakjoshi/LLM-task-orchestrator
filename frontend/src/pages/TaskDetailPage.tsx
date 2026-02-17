@@ -1,6 +1,7 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { RefreshIcon } from "../components/AppIcons";
 import { cancelTask, getTask, getTaskLineage, retryTask } from "../grpc/tasksApi";
 import {
   formatDurationMs,
@@ -10,11 +11,7 @@ import {
   taskStatusBadgeClass,
   taskStatusLabel,
 } from "../grpc/taskFormatters";
-import {
-  TaskStatus,
-  type Task as TaskRecord,
-  type TaskLineageNode,
-} from "../grpc/generated/orchestrator/v1/tasks";
+import { TaskStatus, type Task as TaskRecord, type TaskLineageNode } from "../grpc/generated/orchestrator/v1/tasks";
 
 const POLL_INTERVAL_MS = 2500;
 const SHORT_ID_LENGTH = 8;
@@ -180,11 +177,11 @@ export default function TaskDetailPage() {
   if (loading) {
     return (
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-slate-900">Task Detail</h2>
-        <div className="animate-pulse rounded-xl border border-line bg-slate-50/70 p-4">
-          <div className="h-4 w-40 rounded bg-slate-200" />
-          <div className="mt-3 h-3 w-72 rounded bg-slate-100" />
-          <div className="mt-3 h-24 rounded bg-slate-100" />
+        <h1 className="text-xl font-semibold text-slate-100">Task Detail</h1>
+        <div className="ui-panel animate-pulse p-4">
+          <div className="h-4 w-40 rounded bg-slate-800" />
+          <div className="mt-3 h-3 w-72 rounded bg-slate-900" />
+          <div className="mt-3 h-24 rounded bg-slate-900" />
         </div>
       </section>
     );
@@ -193,21 +190,18 @@ export default function TaskDetailPage() {
   if (loadError) {
     return (
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-slate-900">Task Detail</h2>
-        <div className="space-y-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-3 text-sm font-medium text-rose-700">
+        <h1 className="text-xl font-semibold text-slate-100">Task Detail</h1>
+        <div className="ui-panel space-y-3 border-rose-500/40 bg-rose-500/10 px-3 py-3 text-sm font-medium text-rose-200">
           <p>{loadError}</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => void loadTask(true)}
-              className="rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-400"
+              className="ui-button-secondary !px-3 !py-1.5 !text-xs"
             >
               Retry
             </button>
-            <Link
-              to="/tasks"
-              className="rounded-md border border-rose-300 bg-white px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:border-rose-400"
-            >
+            <Link to="/tasks" className="ui-button-secondary !px-3 !py-1.5 !text-xs">
               Back to tasks
             </Link>
           </div>
@@ -219,9 +213,9 @@ export default function TaskDetailPage() {
   if (!task) {
     return (
       <section className="space-y-3">
-        <h2 className="text-xl font-semibold text-slate-900">Task Detail</h2>
-        <p className="text-sm text-slate-600">Task not found.</p>
-        <Link to="/tasks" className="text-sm font-medium text-blue-700 hover:underline">
+        <h1 className="text-xl font-semibold text-slate-100">Task Detail</h1>
+        <p className="text-sm text-slate-400">Task not found.</p>
+        <Link to="/tasks" className="text-sm font-medium text-cyan-200 hover:text-cyan-100">
           Back to tasks
         </Link>
       </section>
@@ -240,25 +234,25 @@ export default function TaskDetailPage() {
 
   return (
     <section className="space-y-5">
-      <div className="space-y-2">
-        <h2 className="text-xl font-semibold text-slate-900">Task Detail</h2>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link to="/tasks" className="text-sm font-medium text-blue-700 hover:underline">
+      <div className="ui-panel space-y-3 p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link to="/tasks" className="ui-button-secondary !px-3 !py-1.5 !text-xs">
             Back to tasks
           </Link>
           <button
             type="button"
             onClick={() => void loadTask(true)}
             disabled={loading}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-blue-300 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="ui-button-secondary !px-3 !py-1.5 !text-xs"
           >
+            <RefreshIcon className="h-3.5 w-3.5" />
             {loading ? "Refreshing..." : "Refresh"}
           </button>
           {canChainFromTask ? (
             <button
               type="button"
               onClick={() =>
-                navigate(`/tasks?parentTaskId=${encodeURIComponent(task.id)}`, {
+                navigate(`/?parentTaskId=${encodeURIComponent(task.id)}`, {
                   state: {
                     parentTaskId: task.id,
                     parentTaskName: task.name,
@@ -266,7 +260,7 @@ export default function TaskDetailPage() {
                   },
                 })
               }
-              className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+              className="ui-button-primary !px-3 !py-1.5 !text-xs"
             >
               Use as New Task
             </button>
@@ -276,7 +270,7 @@ export default function TaskDetailPage() {
               type="button"
               onClick={() => void handleRetryTask()}
               disabled={retrySubmitting}
-              className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 transition hover:border-amber-400 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-200 transition hover:border-amber-400/60 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {retrySubmitting ? "Re-queueing..." : "Retry Task"}
             </button>
@@ -286,24 +280,25 @@ export default function TaskDetailPage() {
               type="button"
               onClick={() => void handleCancelTask()}
               disabled={cancelSubmitting}
-              className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-800 transition hover:border-rose-400 hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:border-rose-400/60 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {cancelSubmitting ? "Cancelling..." : "Cancel Task"}
             </button>
           ) : null}
         </div>
+
         {lineageWarning ? (
-          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-700">
+          <p className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-200">
             {lineageWarning}
           </p>
         ) : null}
         {actionSuccess ? (
-          <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+          <p className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-200">
             {actionSuccess}
           </p>
         ) : null}
         {actionError ? (
-          <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs font-medium text-rose-700">
+          <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-xs font-medium text-rose-200">
             {actionError}
           </p>
         ) : null}
@@ -314,14 +309,14 @@ export default function TaskDetailPage() {
         ) : null}
       </div>
 
-      <dl className="grid gap-3 rounded-xl border border-line bg-slate-50/70 p-4 sm:grid-cols-2">
+      <dl className="ui-panel grid gap-3 p-4 sm:grid-cols-2">
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">ID</dt>
-          <dd className="mt-1 break-all text-sm text-slate-800">{task.id}</dd>
+          <dd className="mt-1 break-all text-sm text-slate-200">{task.id}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Name</dt>
-          <dd className="mt-1 text-sm text-slate-800">{task.name}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{task.name}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</dt>
@@ -335,50 +330,50 @@ export default function TaskDetailPage() {
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Priority</dt>
-          <dd className="mt-1 text-sm text-slate-800">{taskPriorityLabel(task.priority)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{taskPriorityLabel(task.priority)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Created At</dt>
-          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.createdAt)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{formatTimestamp(task.createdAt)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Scheduled At</dt>
-          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.scheduledAt)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{formatTimestamp(task.scheduledAt)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Execute After</dt>
-          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.executeAfter)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{formatTimestamp(task.executeAfter)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Started At</dt>
-          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.startedAt)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{formatTimestamp(task.startedAt)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Completed At</dt>
-          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.completedAt)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{formatTimestamp(task.completedAt)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Updated At</dt>
-          <dd className="mt-1 text-sm text-slate-800">{formatTimestamp(task.updatedAt)}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{formatTimestamp(task.updatedAt)}</dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Retries Used</dt>
-          <dd className="mt-1 text-sm text-slate-800">
+          <dd className="mt-1 text-sm text-slate-200">
             {task.retryCount} / {task.maxRetries}
           </dd>
         </div>
         <div>
           <dt className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ancestor Count</dt>
-          <dd className="mt-1 text-sm text-slate-800">{ancestors.length}</dd>
+          <dd className="mt-1 text-sm text-slate-200">{ancestors.length}</dd>
         </div>
       </dl>
 
       {latestMetrics ? (
-        <div className="space-y-2 rounded-xl border border-line bg-slate-50/70 p-4">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+        <div className="ui-panel space-y-2 p-4">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
             Latest Execution Metadata
-          </h3>
-          <dl className="grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+          </h2>
+          <dl className="grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
             <div>
               <dt className="font-medium text-slate-500">Attempt</dt>
               <dd>{latestMetrics.attemptNumber || "-"}</dd>
@@ -415,14 +410,14 @@ export default function TaskDetailPage() {
         </div>
       ) : null}
 
-      <div className="space-y-2 rounded-xl border border-line bg-slate-50/70 p-4">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Lineage View</h3>
+      <div className="ui-panel space-y-2 p-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">Lineage View</h2>
         {ancestorPath.length > 0 ? (
-          <p className="text-sm text-slate-700">
+          <p className="text-sm text-slate-300">
             Ancestor chain:{" "}
             {ancestorPath.map((node, index) => (
               <span key={node.task.id}>
-                <Link to={`/tasks/${node.task.id}`} className="font-medium text-blue-700 hover:underline">
+                <Link to={`/tasks/${node.task.id}`} className="font-medium text-cyan-200 hover:text-cyan-100">
                   {node.task.name}
                 </Link>
                 {index < ancestorPath.length - 1 ? " -> " : ""}
@@ -430,17 +425,17 @@ export default function TaskDetailPage() {
             ))}
           </p>
         ) : (
-          <p className="text-sm text-slate-600">No ancestor tasks.</p>
+          <p className="text-sm text-slate-400">No ancestor tasks.</p>
         )}
 
         {descendants.length > 0 ? (
-          <ul className="space-y-1 text-sm text-slate-700">
+          <ul className="space-y-1 text-sm text-slate-300">
             {descendants.map((node) => (
               <li key={node.task.id} style={{ marginLeft: `${Math.max(0, node.depth - 1) * 16}px` }}>
-                <span className="mr-2 rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                <span className="mr-2 rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs text-slate-400">
                   depth {node.depth}
                 </span>
-                <Link to={`/tasks/${node.task.id}`} className="font-medium text-blue-700 hover:underline">
+                <Link to={`/tasks/${node.task.id}`} className="font-medium text-cyan-200 hover:text-cyan-100">
                   {node.task.name}
                 </Link>
                 <span className="ml-2 text-xs text-slate-500">
@@ -450,34 +445,34 @@ export default function TaskDetailPage() {
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-slate-600">No descendant tasks.</p>
+          <p className="text-sm text-slate-400">No descendant tasks.</p>
         )}
       </div>
 
       <div>
-        <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Prompt</h3>
-        <pre className="overflow-x-auto rounded-xl border border-line bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
+        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Prompt</h2>
+        <pre className="ui-panel overflow-x-auto p-4 text-sm leading-relaxed text-slate-200">
           {task.prompt}
         </pre>
       </div>
 
       {task.output ? (
         <div>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Output</h3>
-          <pre className="overflow-x-auto rounded-xl border border-line bg-slate-50 p-4 text-sm leading-relaxed text-slate-800">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">Output</h2>
+          <pre className="ui-panel overflow-x-auto p-4 text-sm leading-relaxed text-slate-200">
             {task.output}
           </pre>
         </div>
       ) : task.status === TaskStatus.TASK_STATUS_COMPLETED ? (
-        <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+        <p className="ui-panel px-4 py-3 text-sm text-slate-400">
           Task completed with no output content.
         </p>
       ) : null}
 
       {task.errorMessage ? (
         <div>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-rose-600">Error</h3>
-          <pre className="overflow-x-auto rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm leading-relaxed text-rose-700">
+          <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-rose-300">Error</h2>
+          <pre className="ui-panel overflow-x-auto border-rose-500/40 bg-rose-500/10 p-4 text-sm leading-relaxed text-rose-200">
             {task.errorMessage}
           </pre>
         </div>

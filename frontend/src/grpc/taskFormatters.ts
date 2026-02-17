@@ -24,17 +24,17 @@ const ACTIVE_STATUSES = new Set<TaskStatus>([
 
 const STATUS_BADGE_CLASSES: Partial<Record<TaskStatus, string>> = {
   [TaskStatus.TASK_STATUS_PENDING]:
-    "border-amber-200 bg-amber-50 text-amber-700",
+    "border-amber-500/40 bg-amber-500/10 text-amber-200",
   [TaskStatus.TASK_STATUS_QUEUED]:
-    "border-sky-200 bg-sky-50 text-sky-700",
+    "border-sky-500/40 bg-sky-500/10 text-sky-200",
   [TaskStatus.TASK_STATUS_RUNNING]:
-    "border-indigo-200 bg-indigo-50 text-indigo-700",
+    "border-violet-500/40 bg-violet-500/10 text-violet-200",
   [TaskStatus.TASK_STATUS_COMPLETED]:
-    "border-emerald-200 bg-emerald-50 text-emerald-700",
+    "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
   [TaskStatus.TASK_STATUS_FAILED]:
-    "border-rose-200 bg-rose-50 text-rose-700",
+    "border-rose-500/40 bg-rose-500/10 text-rose-200",
   [TaskStatus.TASK_STATUS_CANCELLED]:
-    "border-slate-300 bg-slate-100 text-slate-700",
+    "border-slate-600 bg-slate-800/70 text-slate-300",
 };
 
 export function taskStatusLabel(status: TaskStatus): string {
@@ -50,7 +50,7 @@ export function isTaskActive(status: TaskStatus): boolean {
 }
 
 export function taskStatusBadgeClass(status: TaskStatus): string {
-  return STATUS_BADGE_CLASSES[status] ?? "border-slate-300 bg-slate-100 text-slate-700";
+  return STATUS_BADGE_CLASSES[status] ?? "border-slate-600 bg-slate-800/70 text-slate-300";
 }
 
 export function formatTimestamp(value: Date | string | undefined): string {
