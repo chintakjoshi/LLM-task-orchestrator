@@ -37,6 +37,10 @@ def _to_timestamp(value: datetime | None) -> Timestamp | None:
 
 
 def _latest_execution(task: Task) -> TaskExecution | None:
+    if hasattr(task, "_latest_execution"):
+        latest_execution = getattr(task, "_latest_execution")
+        if isinstance(latest_execution, TaskExecution) or latest_execution is None:
+            return latest_execution
     if not task.executions:
         return None
     return max(task.executions, key=lambda execution: (execution.attempt_number, execution.created_at))

@@ -10,12 +10,10 @@ import {
   taskStatusLabel,
 } from "../grpc/taskFormatters";
 import { TaskStatus, type Task as TaskRecord } from "../grpc/generated/orchestrator/v1/tasks";
-import { listTasks } from "../grpc/tasksApi";
+import { listTasksPage } from "../grpc/tasksApi";
 
 const POLL_INTERVAL_MS = 2500;
 const PAGE_SIZE_OPTIONS = [20, 50, 100];
-const FILTER_SCAN_BATCH_SIZE = 200;
-const FILTER_SCAN_MAX_PAGES = 200;
 
 type TaskStatusFilter = "all" | TaskStatus;
 
@@ -43,56 +41,14 @@ function truncateText(value: string, maxLength = 180): string {
   return `${value.slice(0, maxLength)}...`;
 }
 
-function matchesTask(task: TaskRecord, statusFilter: TaskStatusFilter, normalizedQuery: string): boolean {
-  if (statusFilter !== "all" && task.status !== statusFilter) {
-    return false;
-  }
-
-  if (!normalizedQuery) {
-    return true;
-  }
-
-  return (
-    task.name.toLowerCase().includes(normalizedQuery)
-    || task.id.toLowerCase().includes(normalizedQuery)
-    || task.prompt.toLowerCase().includes(normalizedQuery)
-    || task.output.toLowerCase().includes(normalizedQuery)
-    || task.errorMessage.toLowerCase().includes(normalizedQuery)
-  );
-}
-
-async function loadAllTasksForFilter(): Promise<TaskRecord[]> {
-  const tasks: TaskRecord[] = [];
-  let offset = 0;
-  let pageCount = 0;
-
-  while (pageCount < FILTER_SCAN_MAX_PAGES) {
-    const batch = await listTasks({ limit: FILTER_SCAN_BATCH_SIZE, offset });
-    if (batch.length === 0) {
-      break;
-    }
-
-    tasks.push(...batch);
-    offset += batch.length;
-    pageCount += 1;
-
-    if (batch.length < FILTER_SCAN_BATCH_SIZE) {
-      break;
-    }
-  }
-
-  return tasks;
-}
-
 export default function TasksPage() {
   const [tasks, setTasks] = useState<TaskRecord[]>([]);
-  const [filteredTasks, setFilteredTasks] = useState<TaskRecord[]>([]);
   const [page, setPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[0]);
   const [hasNextPage, setHasNextPage] = useState<boolean>(false);
+  const [totalCount, setTotalCount] = useState<number>(0);
 
   const [loading, setLoading] = useState<boolean>(true);
-  const [searching, setSearching] = useState<boolean>(false);
   const [listError, setListError] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
@@ -109,11 +65,11 @@ export default function TasksPage() {
     };
   }, [searchQuery]);
 
-  const normalizedQuery = debouncedSearchQuery.trim().toLowerCase();
+  const normalizedQuery = debouncedSearchQuery.trim();
   const isFiltering = statusFilter !== "all" || normalizedQuery.length > 0;
 
   const filterKey = useMemo(
-    () => `${statusFilter}|${normalizedQuery}`,
+    () => `${statusFilter}|${normalizedQuery.toLowerCase()}`,
     [normalizedQuery, statusFilter],
   );
 
@@ -121,61 +77,44 @@ export default function TasksPage() {
     setPage(1);
   }, [filterKey, pageSize]);
 
-  const loadPage = useCallback(async (showLoading: boolean) => {
+  const loadTasks = useCallback(async (showLoading: boolean) => {
     if (showLoading) {
       setLoading(true);
     }
 
     try {
       const offset = (page - 1) * pageSize;
-      const batch = await listTasks({ limit: pageSize + 1, offset });
-      setTasks(batch.slice(0, pageSize));
-      setHasNextPage(batch.length > pageSize);
+      const response = await listTasksPage({
+        limit: pageSize,
+        offset,
+        statusFilter: statusFilter === "all" ? undefined : statusFilter,
+        query: normalizedQuery || undefined,
+      });
+      setTasks(response.tasks);
+      setHasNextPage(response.hasMore);
+      setTotalCount(response.totalCount);
       setListError("");
       setLastRefreshedAt(new Date());
     } catch (err: unknown) {
       setListError(extractErrorMessage(err, "Failed to load tasks."));
       setTasks([]);
       setHasNextPage(false);
+      setTotalCount(0);
     } finally {
       if (showLoading) {
         setLoading(false);
       }
     }
-  }, [page, pageSize]);
-
-  const loadFilteredTasks = useCallback(async (showLoading: boolean) => {
-    if (showLoading) {
-      setLoading(true);
-    }
-    setSearching(true);
-
-    try {
-      const allTasks = await loadAllTasksForFilter();
-      const matchingTasks = allTasks.filter((task) => matchesTask(task, statusFilter, normalizedQuery));
-      setFilteredTasks(matchingTasks);
-      setListError("");
-      setLastRefreshedAt(new Date());
-    } catch (err: unknown) {
-      setListError(extractErrorMessage(err, "Failed to search tasks."));
-      setFilteredTasks([]);
-    } finally {
-      setSearching(false);
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  }, [normalizedQuery, statusFilter]);
+  }, [normalizedQuery, page, pageSize, statusFilter]);
 
   useEffect(() => {
-    if (isFiltering) {
-      void loadFilteredTasks(true);
-      return;
-    }
-    void loadPage(true);
-  }, [isFiltering, loadFilteredTasks, loadPage]);
+    void loadTasks(true);
+  }, [loadTasks]);
 
-  const autoRefreshEnabled = useMemo(() => !isFiltering && tasks.some((task) => isTaskActive(task.status)), [isFiltering, tasks]);
+  const autoRefreshEnabled = useMemo(
+    () => !isFiltering && tasks.some((task) => isTaskActive(task.status)),
+    [isFiltering, tasks],
+  );
 
   useEffect(() => {
     if (!autoRefreshEnabled) {
@@ -183,38 +122,23 @@ export default function TasksPage() {
     }
 
     const intervalId = window.setInterval(() => {
-      void loadPage(false);
+      void loadTasks(false);
     }, POLL_INTERVAL_MS);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [autoRefreshEnabled, loadPage]);
-
-  const displayedTasks = useMemo(() => {
-    if (!isFiltering) {
-      return tasks;
-    }
-
-    const start = (page - 1) * pageSize;
-    return filteredTasks.slice(start, start + pageSize);
-  }, [filteredTasks, isFiltering, page, pageSize, tasks]);
+  }, [autoRefreshEnabled, loadTasks]);
 
   const canGoPrevious = page > 1;
-  const canGoNext = isFiltering
-    ? filteredTasks.length > page * pageSize
-    : hasNextPage;
+  const canGoNext = hasNextPage;
 
   const resultSummary = isFiltering
-    ? `${filteredTasks.length} matching tasks`
-    : `Page ${page} (${displayedTasks.length} shown)`;
+    ? `Showing ${tasks.length} of ${totalCount} matching tasks`
+    : `Page ${page} (${tasks.length} shown of ${totalCount})`;
 
   const handleRefresh = () => {
-    if (isFiltering) {
-      void loadFilteredTasks(true);
-      return;
-    }
-    void loadPage(true);
+    void loadTasks(true);
   };
 
   return (
@@ -230,11 +154,11 @@ export default function TasksPage() {
           <button
             type="button"
             onClick={handleRefresh}
-            disabled={loading || searching}
+            disabled={loading}
             className="ui-button-secondary"
           >
             <RefreshIcon className="h-4 w-4" />
-            {loading || searching ? "Refreshing..." : "Refresh"}
+            {loading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
 
@@ -307,7 +231,7 @@ export default function TasksPage() {
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
         <p>{resultSummary}</p>
         {isFiltering ? (
-          <p>Filter mode scans all tasks in pages for accurate search results.</p>
+          <p>Using server-side filters for efficient search results.</p>
         ) : autoRefreshEnabled ? (
           <p>Auto-refreshing every 2.5 seconds while this page has active tasks.</p>
         ) : null}
@@ -319,7 +243,7 @@ export default function TasksPage() {
         </div>
       ) : null}
 
-      {(loading || searching) && displayedTasks.length === 0 ? (
+      {loading && tasks.length === 0 ? (
         <ul className="space-y-2">
           {[1, 2, 3].map((row) => (
             <li key={row} className="ui-panel animate-pulse px-4 py-3">
@@ -330,15 +254,15 @@ export default function TasksPage() {
         </ul>
       ) : null}
 
-      {!loading && displayedTasks.length === 0 ? (
+      {!loading && tasks.length === 0 ? (
         <p className="ui-panel border-dashed px-4 py-6 text-sm text-slate-400">
           {isFiltering ? "No tasks match the current filters." : "No tasks found on this page."}
         </p>
       ) : null}
 
-      {displayedTasks.length > 0 ? (
+      {tasks.length > 0 ? (
         <ul className="overflow-hidden rounded-2xl border border-slate-800">
-          {displayedTasks.map((task) => (
+          {tasks.map((task) => (
             <li key={task.id} className="border-b border-slate-800 bg-slate-950/70 px-4 py-3 last:border-b-0">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <Link to={`/tasks/${task.id}`} className="text-sm font-semibold text-cyan-200 hover:text-cyan-100">

@@ -10,6 +10,7 @@ import type {
   ListTaskTemplatesResponse,
   RetryTaskResponse,
   Task as TaskRecord,
+  TaskStatus,
   TaskTemplate,
 } from "./generated/orchestrator/v1/tasks";
 import { taskServiceClient } from "./client";
@@ -39,6 +40,14 @@ export interface CreateTaskFromTemplateInput {
 export interface ListTasksInput {
   limit?: number;
   offset?: number;
+  statusFilter?: TaskStatus;
+  query?: string;
+}
+
+export interface ListTasksResult {
+  tasks: TaskRecord[];
+  totalCount: number;
+  hasMore: boolean;
 }
 
 function getTaskFromCreate(response: CreateTaskResponse): TaskRecord {
@@ -124,7 +133,7 @@ export async function createTask({
   }, "Failed to create task.");
 }
 
-export async function listTasks(input: ListTasksInput = {}): Promise<TaskRecord[]> {
+export async function listTasksPage(input: ListTasksInput = {}): Promise<ListTasksResult> {
   const limit = input.limit ?? 100;
   const offset = input.offset ?? 0;
   return invokeRpc(async (metadata) => {
@@ -132,11 +141,22 @@ export async function listTasks(input: ListTasksInput = {}): Promise<TaskRecord[
       {
         limit,
         offset,
+        statusFilter: input.statusFilter,
+        query: input.query ?? "",
       },
       metadata,
     );
-    return response.tasks ?? [];
+    return {
+      tasks: response.tasks ?? [],
+      totalCount: response.totalCount ?? 0,
+      hasMore: response.hasMore ?? false,
+    };
   }, "Failed to list tasks.");
+}
+
+export async function listTasks(input: ListTasksInput = {}): Promise<TaskRecord[]> {
+  const response = await listTasksPage(input);
+  return response.tasks;
 }
 
 export async function getTask(id: string): Promise<TaskRecord> {

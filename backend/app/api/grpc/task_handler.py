@@ -8,6 +8,7 @@ import grpc
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
+from app.models.task import TaskStatus
 from app.db.session import SessionLocal
 from app.schemas.task import (
     TaskBatchCreateInput,
@@ -39,6 +40,15 @@ from app.services.task_service import (
 from orchestrator.v1 import tasks_pb2, tasks_pb2_grpc
 
 logger = logging.getLogger(__name__)
+
+_PROTO_TO_TASK_STATUS = {
+    tasks_pb2.TASK_STATUS_PENDING: TaskStatus.pending,
+    tasks_pb2.TASK_STATUS_QUEUED: TaskStatus.queued,
+    tasks_pb2.TASK_STATUS_RUNNING: TaskStatus.running,
+    tasks_pb2.TASK_STATUS_COMPLETED: TaskStatus.completed,
+    tasks_pb2.TASK_STATUS_FAILED: TaskStatus.failed,
+    tasks_pb2.TASK_STATUS_CANCELLED: TaskStatus.cancelled,
+}
 
 
 class TaskServiceGrpcHandler(tasks_pb2_grpc.TaskServiceServicer):
@@ -170,10 +180,25 @@ class TaskServiceGrpcHandler(tasks_pb2_grpc.TaskServiceServicer):
         request_id, _ = self._start_request(context=context, method_name="ListTasks")
         self._check_deadline(context=context, request_id=request_id)
 
+        status_filter: TaskStatus | None = None
+        if request.status_filter != tasks_pb2.TASK_STATUS_UNSPECIFIED:
+            status_filter = _PROTO_TO_TASK_STATUS.get(request.status_filter)
+            if status_filter is None:
+                self._abort(
+                    context,
+                    code=grpc.StatusCode.INVALID_ARGUMENT,
+                    message="status_filter is invalid",
+                    request_id=request_id,
+                )
+
+        query = request.query.strip() if request.query else None
+
         try:
             payload = TaskListInput(
                 limit=request.limit or 50,
                 offset=request.offset,
+                status_filter=status_filter,
+                query=query,
             )
         except ValidationError as exc:
             self._abort(
@@ -186,8 +211,13 @@ class TaskServiceGrpcHandler(tasks_pb2_grpc.TaskServiceServicer):
         with SessionLocal() as db:
             try:
                 service = TaskService(db)
-                tasks = service.list_tasks(payload)
-                return tasks_pb2.ListTasksResponse(tasks=to_proto_task_list(tasks))
+                tasks, total_count = service.list_tasks(payload)
+                has_more = (payload.offset + len(tasks)) < total_count
+                return tasks_pb2.ListTasksResponse(
+                    tasks=to_proto_task_list(tasks),
+                    total_count=total_count,
+                    has_more=has_more,
+                )
             except SQLAlchemyError:
                 db.rollback()
                 logger.exception("ListTasks database failure request_id=%s", request_id)

@@ -14,7 +14,7 @@ function resolveTimeoutSeconds(): number {
   if (!Number.isFinite(configured) || configured <= 0) {
     return FALLBACK_TIMEOUT_SECONDS;
   }
-  return Math.floor(configured);
+  return Math.max(1, Math.ceil(configured));
 }
 
 function generateRequestId(): string {

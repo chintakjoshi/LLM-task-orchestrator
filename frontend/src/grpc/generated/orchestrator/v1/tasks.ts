@@ -177,10 +177,14 @@ export interface CreateTaskResponse {
 export interface ListTasksRequest {
   limit: number;
   offset: number;
+  statusFilter: TaskStatus;
+  query: string;
 }
 
 export interface ListTasksResponse {
   tasks: Task[];
+  totalCount: number;
+  hasMore: boolean;
 }
 
 export interface GetTaskRequest {
@@ -1158,7 +1162,7 @@ export const CreateTaskResponse: MessageFns<CreateTaskResponse> = {
 };
 
 function createBaseListTasksRequest(): ListTasksRequest {
-  return { limit: 0, offset: 0 };
+  return { limit: 0, offset: 0, statusFilter: 0, query: "" };
 }
 
 export const ListTasksRequest: MessageFns<ListTasksRequest> = {
@@ -1168,6 +1172,12 @@ export const ListTasksRequest: MessageFns<ListTasksRequest> = {
     }
     if (message.offset !== 0) {
       writer.uint32(16).int32(message.offset);
+    }
+    if (message.statusFilter !== 0) {
+      writer.uint32(32).int32(message.statusFilter);
+    }
+    if (message.query !== "") {
+      writer.uint32(42).string(message.query);
     }
     return writer;
   },
@@ -1195,6 +1205,22 @@ export const ListTasksRequest: MessageFns<ListTasksRequest> = {
           message.offset = reader.int32();
           continue;
         }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.statusFilter = reader.int32() as any;
+          continue;
+        }
+        case 5: {
+          if (tag !== 42) {
+            break;
+          }
+
+          message.query = reader.string();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1208,6 +1234,12 @@ export const ListTasksRequest: MessageFns<ListTasksRequest> = {
     return {
       limit: isSet(object.limit) ? globalThis.Number(object.limit) : 0,
       offset: isSet(object.offset) ? globalThis.Number(object.offset) : 0,
+      statusFilter: isSet(object.statusFilter)
+        ? taskStatusFromJSON(object.statusFilter)
+        : isSet(object.status_filter)
+        ? taskStatusFromJSON(object.status_filter)
+        : 0,
+      query: isSet(object.query) ? globalThis.String(object.query) : "",
     };
   },
 
@@ -1219,6 +1251,12 @@ export const ListTasksRequest: MessageFns<ListTasksRequest> = {
     if (message.offset !== 0) {
       obj.offset = Math.round(message.offset);
     }
+    if (message.statusFilter !== 0) {
+      obj.statusFilter = taskStatusToJSON(message.statusFilter);
+    }
+    if (message.query !== "") {
+      obj.query = message.query;
+    }
     return obj;
   },
 
@@ -1229,18 +1267,26 @@ export const ListTasksRequest: MessageFns<ListTasksRequest> = {
     const message = createBaseListTasksRequest();
     message.limit = object.limit ?? 0;
     message.offset = object.offset ?? 0;
+    message.statusFilter = object.statusFilter ?? 0;
+    message.query = object.query ?? "";
     return message;
   },
 };
 
 function createBaseListTasksResponse(): ListTasksResponse {
-  return { tasks: [] };
+  return { tasks: [], totalCount: 0, hasMore: false };
 }
 
 export const ListTasksResponse: MessageFns<ListTasksResponse> = {
   encode(message: ListTasksResponse, writer: BinaryWriter = new BinaryWriter()): BinaryWriter {
     for (const v of message.tasks) {
       Task.encode(v!, writer.uint32(10).fork()).join();
+    }
+    if (message.totalCount !== 0) {
+      writer.uint32(24).int32(message.totalCount);
+    }
+    if (message.hasMore !== false) {
+      writer.uint32(32).bool(message.hasMore);
     }
     return writer;
   },
@@ -1260,6 +1306,22 @@ export const ListTasksResponse: MessageFns<ListTasksResponse> = {
           message.tasks.push(Task.decode(reader, reader.uint32()));
           continue;
         }
+        case 3: {
+          if (tag !== 24) {
+            break;
+          }
+
+          message.totalCount = reader.int32();
+          continue;
+        }
+        case 4: {
+          if (tag !== 32) {
+            break;
+          }
+
+          message.hasMore = reader.bool();
+          continue;
+        }
       }
       if ((tag & 7) === 4 || tag === 0) {
         break;
@@ -1270,13 +1332,31 @@ export const ListTasksResponse: MessageFns<ListTasksResponse> = {
   },
 
   fromJSON(object: any): ListTasksResponse {
-    return { tasks: globalThis.Array.isArray(object?.tasks) ? object.tasks.map((e: any) => Task.fromJSON(e)) : [] };
+    return {
+      tasks: globalThis.Array.isArray(object?.tasks) ? object.tasks.map((e: any) => Task.fromJSON(e)) : [],
+      totalCount: isSet(object.totalCount)
+        ? globalThis.Number(object.totalCount)
+        : isSet(object.total_count)
+        ? globalThis.Number(object.total_count)
+        : 0,
+      hasMore: isSet(object.hasMore)
+        ? globalThis.Boolean(object.hasMore)
+        : isSet(object.has_more)
+        ? globalThis.Boolean(object.has_more)
+        : false,
+    };
   },
 
   toJSON(message: ListTasksResponse): unknown {
     const obj: any = {};
     if (message.tasks?.length) {
       obj.tasks = message.tasks.map((e) => Task.toJSON(e));
+    }
+    if (message.totalCount !== 0) {
+      obj.totalCount = Math.round(message.totalCount);
+    }
+    if (message.hasMore !== false) {
+      obj.hasMore = message.hasMore;
     }
     return obj;
   },
@@ -1287,6 +1367,8 @@ export const ListTasksResponse: MessageFns<ListTasksResponse> = {
   fromPartial<I extends Exact<DeepPartial<ListTasksResponse>, I>>(object: I): ListTasksResponse {
     const message = createBaseListTasksResponse();
     message.tasks = object.tasks?.map((e) => Task.fromPartial(e)) || [];
+    message.totalCount = object.totalCount ?? 0;
+    message.hasMore = object.hasMore ?? false;
     return message;
   },
 };

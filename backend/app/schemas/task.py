@@ -6,6 +6,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field
 
+from app.models.task import TaskStatus
+
 
 class TaskCreateInput(BaseModel):
     name: Annotated[str, Field(min_length=1, max_length=255)]
@@ -18,6 +20,8 @@ class TaskCreateInput(BaseModel):
 class TaskListInput(BaseModel):
     limit: Annotated[int, Field(ge=1, le=200)] = 50
     offset: Annotated[int, Field(ge=0)] = 0
+    status_filter: TaskStatus | None = None
+    query: Annotated[str | None, Field(min_length=1, max_length=200)] = None
 
 
 class TaskGetInput(BaseModel):

@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Navigate, Route, Routes } from "react-router-dom";
 
 import { HomeIcon, ListIcon, RefreshIcon } from "./components/AppIcons";
-import { TaskStatus, type Task as TaskRecord } from "./grpc/generated/orchestrator/v1/tasks";
+import { TaskStatus } from "./grpc/generated/orchestrator/v1/tasks";
 import { formatTimestamp } from "./grpc/taskFormatters";
-import { listTasks } from "./grpc/tasksApi";
+import { listTasksPage } from "./grpc/tasksApi";
 import HomePage from "./pages/HomePage";
 import TaskDetailPage from "./pages/TaskDetailPage";
 import TasksPage from "./pages/TasksPage";
@@ -19,8 +19,6 @@ interface TaskSummaryCounts {
   cancelled: number;
 }
 
-const SUMMARY_PAGE_SIZE = 200;
-const SUMMARY_MAX_PAGES = 200;
 const ACTIVE_REFRESH_MS = 8000;
 const IDLE_REFRESH_MS = 25000;
 
@@ -36,56 +34,43 @@ function emptyCounts(): TaskSummaryCounts {
   };
 }
 
-function addToCounts(counts: TaskSummaryCounts, task: TaskRecord): void {
-  counts.total += 1;
-
-  switch (task.status) {
-    case TaskStatus.TASK_STATUS_PENDING:
-      counts.pending += 1;
-      break;
-    case TaskStatus.TASK_STATUS_QUEUED:
-      counts.queued += 1;
-      break;
-    case TaskStatus.TASK_STATUS_RUNNING:
-      counts.running += 1;
-      break;
-    case TaskStatus.TASK_STATUS_COMPLETED:
-      counts.completed += 1;
-      break;
-    case TaskStatus.TASK_STATUS_FAILED:
-      counts.failed += 1;
-      break;
-    case TaskStatus.TASK_STATUS_CANCELLED:
-      counts.cancelled += 1;
-      break;
-    default:
-      break;
-  }
+async function countTasks(statusFilter?: TaskStatus): Promise<number> {
+  const response = await listTasksPage({
+    limit: 1,
+    offset: 0,
+    statusFilter,
+  });
+  return response.totalCount;
 }
 
 async function fetchSummarySnapshot(): Promise<TaskSummaryCounts> {
-  let offset = 0;
-  let pageIndex = 0;
-  const counts = emptyCounts();
+  const [
+    total,
+    pending,
+    queued,
+    running,
+    completed,
+    failed,
+    cancelled,
+  ] = await Promise.all([
+    countTasks(),
+    countTasks(TaskStatus.TASK_STATUS_PENDING),
+    countTasks(TaskStatus.TASK_STATUS_QUEUED),
+    countTasks(TaskStatus.TASK_STATUS_RUNNING),
+    countTasks(TaskStatus.TASK_STATUS_COMPLETED),
+    countTasks(TaskStatus.TASK_STATUS_FAILED),
+    countTasks(TaskStatus.TASK_STATUS_CANCELLED),
+  ]);
 
-  while (pageIndex < SUMMARY_MAX_PAGES) {
-    const batch = await listTasks({ limit: SUMMARY_PAGE_SIZE, offset });
-    if (batch.length === 0) {
-      break;
-    }
-
-    for (const task of batch) {
-      addToCounts(counts, task);
-    }
-    offset += batch.length;
-    pageIndex += 1;
-
-    if (batch.length < SUMMARY_PAGE_SIZE) {
-      break;
-    }
-  }
-
-  return counts;
+  return {
+    total,
+    pending,
+    queued,
+    running,
+    completed,
+    failed,
+    cancelled,
+  };
 }
 
 export default function App() {

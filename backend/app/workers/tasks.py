@@ -23,21 +23,43 @@ def execute_llm_task(self, *, task_id: str) -> dict[str, str]:
     with SessionLocal() as db:
         service = TaskService(db)
         task = service.get_task(TaskGetInput(id=parsed_task_id))
-        if task.status == TaskStatus.cancelled:
+        if task.status in {
+            TaskStatus.completed,
+            TaskStatus.failed,
+            TaskStatus.cancelled,
+        }:
             return {
                 "task_id": task_id,
-                "status": "cancelled",
+                "status": "ignored",
             }
+
+        latest_execution = service.repository.get_latest_execution_for_task(parsed_task_id)
+        if latest_execution is None or latest_execution.celery_task_id != celery_task_id:
+            return {
+                "task_id": task_id,
+                "status": "ignored",
+            }
+
         service.mark_task_running(
             task_id=parsed_task_id,
             celery_task_id=celery_task_id,
             worker_id=worker_id,
         )
         task = service.get_task(TaskGetInput(id=parsed_task_id))
-        if task.status == TaskStatus.cancelled:
+        latest_execution = service.repository.get_latest_execution_for_task(parsed_task_id)
+        if latest_execution is None or latest_execution.celery_task_id != celery_task_id:
             return {
                 "task_id": task_id,
-                "status": "cancelled",
+                "status": "ignored",
+            }
+        if task.status in {
+            TaskStatus.completed,
+            TaskStatus.failed,
+            TaskStatus.cancelled,
+        }:
+            return {
+                "task_id": task_id,
+                "status": "ignored",
             }
         prompt = task.prompt
 
@@ -47,10 +69,14 @@ def execute_llm_task(self, *, task_id: str) -> dict[str, str]:
         with SessionLocal() as db:
             service = TaskService(db)
             refreshed_task = service.get_task(TaskGetInput(id=parsed_task_id))
-            if refreshed_task.status == TaskStatus.cancelled:
+            if refreshed_task.status in {
+                TaskStatus.completed,
+                TaskStatus.failed,
+                TaskStatus.cancelled,
+            }:
                 return {
                     "task_id": task_id,
-                    "status": "cancelled",
+                    "status": "ignored",
                 }
             service.mark_task_completed(
                 task_id=parsed_task_id,
@@ -73,10 +99,14 @@ def execute_llm_task(self, *, task_id: str) -> dict[str, str]:
         with SessionLocal() as db:
             service = TaskService(db)
             refreshed_task = service.get_task(TaskGetInput(id=parsed_task_id))
-            if refreshed_task.status == TaskStatus.cancelled:
+            if refreshed_task.status in {
+                TaskStatus.completed,
+                TaskStatus.failed,
+                TaskStatus.cancelled,
+            }:
                 return {
                     "task_id": task_id,
-                    "status": "cancelled",
+                    "status": "ignored",
                 }
             service.mark_task_failed(
                 task_id=parsed_task_id,

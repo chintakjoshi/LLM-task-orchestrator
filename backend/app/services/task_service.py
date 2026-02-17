@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 from uuid import uuid4
 
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.task import Task
@@ -87,7 +88,12 @@ class TaskService:
         return queued_task
 
     def list_tasks(self, data: TaskListInput):
-        return self.repository.list(limit=data.limit, offset=data.offset)
+        return self.repository.list(
+            limit=data.limit,
+            offset=data.offset,
+            status_filter=data.status_filter,
+            query=data.query,
+        )
 
     def get_task(self, data: TaskGetInput):
         task = self.repository.get_by_id(data.id)
@@ -144,18 +150,71 @@ class TaskService:
         return cancelled_task
 
     def create_tasks_batch(self, data: TaskBatchCreateInput):
-        created_tasks: list[Task] = []
-        for item in data.tasks:
-            created_tasks.append(
-                self.create_task(
-                    TaskCreateInput(
-                        name=item.name,
-                        prompt=item.prompt,
-                        parent_task_id=item.parent_task_id,
-                        created_by=item.created_by,
-                    )
+        self._validate_batch_parents(data)
+
+        staged_dispatches: list[tuple[UUID, str]] = []
+        created_task_ids: list[UUID] = []
+
+        try:
+            for item in data.tasks:
+                task = self.repository.create(
+                    name=item.name,
+                    prompt=item.prompt,
+                    parent_task_id=item.parent_task_id,
+                    created_by=item.created_by,
+                    execute_after=None,
+                    commit=False,
                 )
-            )
+                celery_task_id = str(uuid4())
+                queued_task = self.repository.enqueue_execution(
+                    task_id=task.id,
+                    celery_task_id=celery_task_id,
+                    commit=False,
+                )
+                if queued_task is None:
+                    raise TaskNotFoundError("Task not found")
+                staged_dispatches.append((task.id, celery_task_id))
+                created_task_ids.append(task.id)
+            self.repository.db.commit()
+        except SQLAlchemyError:
+            self.repository.db.rollback()
+            raise
+        except Exception:
+            self.repository.db.rollback()
+            raise
+
+        for task_id, celery_task_id in staged_dispatches:
+            try:
+                self._dispatch_llm_task(
+                    task_id=task_id,
+                    celery_task_id=celery_task_id,
+                    eta=None,
+                )
+            except Exception:  # pragma: no cover - network/system dependent
+                logger.exception(
+                    "Batch task dispatch failed task_id=%s celery_task_id=%s",
+                    task_id,
+                    celery_task_id,
+                )
+                try:
+                    self.repository.mark_failed(
+                        task_id=task_id,
+                        celery_task_id=celery_task_id,
+                        error_message="Failed to submit task to Celery",
+                        error_type="TaskEnqueueError",
+                    )
+                except Exception:  # pragma: no cover - defensive guard
+                    logger.exception(
+                        "Failed to mark batch task as failed task_id=%s celery_task_id=%s",
+                        task_id,
+                        celery_task_id,
+                    )
+
+        created_tasks: list[Task] = []
+        for task_id in created_task_ids:
+            task = self.repository.get_by_id(task_id)
+            if task is not None:
+                created_tasks.append(task)
         return created_tasks
 
     def list_task_templates(self) -> tuple[TaskTemplateDefinition, ...]:
@@ -273,15 +332,10 @@ class TaskService:
             raise TaskNotFoundError("Task not found")
 
         try:
-            send_task_kwargs: dict[str, object] = {
-                "kwargs": {"task_id": str(task.id)},
-                "task_id": celery_task_id,
-            }
-            if eta is not None:
-                send_task_kwargs["eta"] = self._normalize_datetime(eta)
-            celery_app.send_task(
-                EXECUTE_LLM_TASK_NAME,
-                **send_task_kwargs,
+            self._dispatch_llm_task(
+                task_id=task.id,
+                celery_task_id=celery_task_id,
+                eta=eta,
             )
         except Exception as exc:  # pragma: no cover - network/system dependent
             self.repository.mark_failed(
@@ -299,6 +353,33 @@ class TaskService:
         if value.tzinfo is None:
             return value.replace(tzinfo=UTC)
         return value.astimezone(UTC)
+
+    def _dispatch_llm_task(
+        self,
+        *,
+        task_id: UUID,
+        celery_task_id: str,
+        eta: datetime | None,
+    ) -> None:
+        send_task_kwargs: dict[str, object] = {
+            "kwargs": {"task_id": str(task_id)},
+            "task_id": celery_task_id,
+        }
+        if eta is not None:
+            send_task_kwargs["eta"] = self._normalize_datetime(eta)
+        celery_app.send_task(
+            EXECUTE_LLM_TASK_NAME,
+            **send_task_kwargs,
+        )
+
+    def _validate_batch_parents(self, data: TaskBatchCreateInput) -> None:
+        parent_ids = {item.parent_task_id for item in data.tasks if item.parent_task_id is not None}
+        if not parent_ids:
+            return
+
+        existing_parent_ids = self.repository.list_existing_task_ids(parent_ids)
+        if parent_ids - existing_parent_ids:
+            raise ParentTaskNotFoundError("Parent task does not exist")
 
     def _get_template_by_id(self, template_id: str) -> TaskTemplateDefinition:
         normalized_id = template_id.strip()

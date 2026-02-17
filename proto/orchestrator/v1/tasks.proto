@@ -84,6 +84,8 @@ message CreateTaskResponse {
 message ListTasksRequest {
   int32 limit = 1;
   int32 offset = 2;
+  TaskStatus status_filter = 4;
+  string query = 5;
 
   // Reserved for backward-compatible evolution.
   reserved 3;
@@ -91,6 +93,8 @@ message ListTasksRequest {
 
 message ListTasksResponse {
   repeated Task tasks = 1;
+  int32 total_count = 3;
+  bool has_more = 4;
 
   // Reserved for backward-compatible evolution.
   reserved 2;

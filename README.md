@@ -59,6 +59,26 @@ Frontend env (`frontend/.env`):
    - `VITE_USER_ID`
    - `VITE_GRPC_TIMEOUT_SECONDS`
 
+## Run With Docker
+
+Start:
+
+```powershell
+docker compose up --build -d
+```
+
+Verify:
+- `http://localhost:5173` (frontend)
+- `GET http://localhost:8000/health`
+- `GET http://localhost:8000/health/db`
+- Envoy gRPC-web endpoint: `http://localhost:8080`
+
+Stop:
+
+```powershell
+docker compose down
+```
+
 ## gRPC Stub Generation
 
 Preferred (containerized, deterministic across hosts):
@@ -78,26 +98,6 @@ Local fallback (host tooling dependent):
 ```powershell
 cd frontend
 npm run generate:grpc:local
-```
-
-## Run With Docker
-
-Start:
-
-```powershell
-docker compose up --build -d
-```
-
-Verify:
-- `http://localhost:5173` (frontend)
-- `GET http://localhost:8000/health`
-- `GET http://localhost:8000/health/db`
-- Envoy gRPC-web endpoint: `http://localhost:8080`
-
-Stop:
-
-```powershell
-docker compose down
 ```
 
 ## Usage Guide
