@@ -188,7 +188,7 @@ How orchestration works:
 - service layer owns create/enqueue coordination
 - repository layer owns persistence updates
 - worker layer owns long-running external call and terminal status updates
-- local worker process is configured with `--concurrency=1` to satisfy the assignment's single-task processing assumption
+- local worker process is configured with `--concurrency=5`
 
 ## Error Handling
 
